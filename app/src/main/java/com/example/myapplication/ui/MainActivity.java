@@ -329,37 +329,37 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     myBleService.disconnect();
                     break;
                 case BleService.ACTION_DATA_AVAILABLE:
-//                    // 处理数据
-//                    byte[] data = intent.getByteArrayExtra(BleService.EXTRA_DATA);
+                    // 处理数据
+                    byte[] data = intent.getByteArrayExtra(BleService.EXTRA_DATA);
 //
-//                    if (data!=null && data.length>0) {
-//                        String ans = ByteUtils.formatByteArray(data);
-//                        int i = compute(ans);
+                    if (data!=null && data.length>0) {
+                        String ans = ByteUtils.formatByteArray(data);
+                        int i = compute(ans);
 //                        Log.d("看看BLE数据啥玩意", "Received data: " + i);
 //
-//                        runOnUiThread(()-> {
-//                            current_xueya.setText(String.valueOf(i));// 更新TextView
-//                            chartHelper.updateChartData(i);// 更新图表
-//                        });
-//
-//                        // 最后满足特定格式才会出现大长串串
-//                        if (data.length>=17) {
-//                            ByteUtils.HealthData bloodPressureData = ByteUtils.parseHealthData(data);
-//
-//                            // 存储当前读取的值
-//                            currentSystolic = bloodPressureData.getSystolic();
-//                            currentDiastolic = bloodPressureData.getDiastolic();
-//                            currentPulse = bloodPressureData.getPulse();
-//
-//                            runOnUiThread(()-> {
-//                                tv_systolic.setText(bloodPressureData.getSystolic() + " mmHg");
-//                                tv_diastolic.setText(bloodPressureData.getDiastolic() + " mmHg");
-//                                tv_pulse.setText(bloodPressureData.getPulse() + " bpm");
-//
-//                                btnSaveData.setEnabled(currentSystolic > 0 && currentDiastolic > 0 && currentPulse > 0);
-//                            });
-//                        }
-//                    }
+                        runOnUiThread(()-> {
+                            current_xueya.setText(String.valueOf(i));// 更新TextView
+                            chartHelper.updateChartData(i);// 更新图表
+                        });
+
+                        // 最后满足特定格式才会出现大长串串
+                        if (data.length>=17) {
+                            ByteUtils.HealthData bloodPressureData = ByteUtils.parseHealthData(data);
+
+                            // 存储当前读取的值
+                            currentSystolic = bloodPressureData.getSystolic();
+                            currentDiastolic = bloodPressureData.getDiastolic();
+                            currentPulse = bloodPressureData.getPulse();
+
+                            runOnUiThread(()-> {
+                                tv_systolic.setText(bloodPressureData.getSystolic() + " mmHg");
+                                tv_diastolic.setText(bloodPressureData.getDiastolic() + " mmHg");
+                                tv_pulse.setText(bloodPressureData.getPulse() + " bpm");
+
+                                btnSaveData.setEnabled(currentSystolic > 0 && currentDiastolic > 0 && currentPulse > 0);
+                            });
+                        }
+                    }
                     break;
                 default:
                     break;
