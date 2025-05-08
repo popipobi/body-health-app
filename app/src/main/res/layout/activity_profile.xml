@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <!-- 眉头 -->
+    <TextView
+        android:id="@+id/header_title"
+        android:layout_width="0dp"
+        android:layout_height="80dp"
+        android:background="#43A047"
+        android:gravity="center"
+        android:paddingTop="20dp"
+        android:text="个人信息"
+        android:textColor="@android:color/white"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- 内容 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:orientation="vertical"
+        android:padding="16dp"
+        app:layout_constraintTop_toBottomOf="@id/header_title"
+        app:layout_constraintBottom_toTopOf="@id/bottom_navigation"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <!-- 个人信息卡片 -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:cardElevation="4dp"
+            app:cardCornerRadius="12dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="账户信息"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="#43A047"
+                    android:layout_marginBottom="16dp"/>
+
+                <TextView
+                    android:id="@+id/tv_username"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="用户名: "
+                    android:textSize="16sp"
+                    android:textColor="#333333"
+                    android:layout_marginBottom="8dp"/>
+
+                <TextView
+                    android:id="@+id/tv_user_id"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="用户ID: "
+                    android:textSize="16sp"
+                    android:textColor="#333333"
+                    android:layout_marginBottom="8dp"/>
+
+                <TextView
+                    android:id="@+id/tv_register_date"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="注册日期: "
+                    android:textSize="16sp"
+                    android:textColor="#333333"/>
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- 账户管理卡片 -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardElevation="4dp"
+            app:cardCornerRadius="12dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="账户管理"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="#43A047"
+                    android:layout_marginBottom="16dp"/>
+
+                <!-- 修改密码按钮 -->
+                <Button
+                    android:id="@+id/btn_change_password"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="48dp"
+                    android:paddingStart="0dp"
+                    android:paddingLeft="0dp"
+                    android:paddingEnd="16dp"
+                    android:text="修改密码"
+                    android:textSize="16sp"
+                    android:textColor="#333333"
+                    android:background="@android:color/transparent"
+                    android:gravity="center_vertical|start"
+                    android:drawableEnd="@drawable/ic_arrow_right_gray"
+                    android:drawablePadding="8dp" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="#D3D3D3"
+                    android:alpha="0.5"
+                    android:layout_marginBottom="8dp"/>
+
+                <Button
+                    android:id="@+id/btn_clear_data"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="48dp"
+                    android:paddingStart="0dp"
+                    android:paddingLeft="0dp"
+                    android:paddingEnd="16dp"
+                    android:text="清除所有用户数据"
+                    android:textSize="16sp"
+                    android:textColor="#333333"
+                    android:background="@android:color/transparent"
+                    android:gravity="center_vertical|start"
+                    android:drawableEnd="@drawable/ic_arrow_right_gray"
+                    android:drawablePadding="8dp" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="#D3D3D3"
+                    android:alpha="0.5"
+                    android:layout_marginBottom="8dp"/>
+
+                <Button
+                    android:id="@+id/btn_logout"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="48dp"
+                    android:paddingStart="0dp"
+                    android:paddingLeft="0dp"
+                    android:paddingEnd="16dp"
+                    android:text="退出登录"
+                    android:textSize="16sp"
+                    android:textColor="#333333"
+                    android:background="@android:color/transparent"
+                    android:gravity="center_vertical|start"
+                    android:drawableEnd="@drawable/ic_arrow_right_gray"
+                    android:drawablePadding="8dp" />
+
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+    </LinearLayout>
+
+    <!-- 底部导航栏 -->
+    <com.google.android.material.bottomnavigation.BottomNavigationView
+        android:id="@+id/bottom_navigation"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#FFFFFF"
+        app:itemIconTint="@drawable/bottom_nav_colors"
+        app:itemTextColor="@drawable/bottom_nav_colors"
+        app:menu="@menu/bottom_navigation_menu"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+</androidx.constraintlayout.widget.ConstraintLayout>
