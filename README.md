@@ -12,7 +12,7 @@
 
 这里是应用的部分截图：
 
-![Screenshot 1](https://github.com/popipobi/body-health-app/blob/master/images/pic_00.png?raw=true)
-![Screenshot 2](https://github.com/popipobi/body-health-app/blob/master/images/pic_01.png?raw=true)
-![Screenshot 3](https://github.com/popipobi/body-health-app/blob/master/images/pic_02.png?raw=true)
-![Screenshot 4](https://github.com/popipobi/body-health-app/blob/master/images/pic_03.png?raw=true)
+![Screenshot 1](images/pic_00.jpg)
+![Screenshot 2](images/pic_01.jpg)
+![Screenshot 3](images/pic_02.jpg)
+![Screenshot 4](images/pic_03.jpg)
