@@ -17,4 +17,6 @@
     <img src="images/pic_01.jpg" alt="Screenshot 2" height="300"/>
     <img src="images/pic_02.jpg" alt="Screenshot 3" height="300"/>
     <img src="images/pic_03.jpg" alt="Screenshot 4" height="300"/>
+    <img src="images/pic_04.jpg" alt="Screenshot 4" height="300"/>
+    <img src="images/pic_05.jpg" alt="Screenshot 4" height="300"/>
 </div>
