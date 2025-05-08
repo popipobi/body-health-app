@@ -12,7 +12,7 @@
 
 这里是应用的部分截图：
 
-![Screenshot 1](images/pic_00.jpg)
-![Screenshot 2](images/pic_01.jpg)
-![Screenshot 3](images/pic_02.jpg)
-![Screenshot 4](images/pic_03.jpg)
+<img src="images/pic_00.png" alt="Screenshot 1" height="300"/>
+<img src="images/pic_01.png" alt="Screenshot 2" height="300"/>
+<img src="images/pic_02.png" alt="Screenshot 3" height="300"/>
+<img src="images/pic_03.png" alt="Screenshot 4" height="300"/>
