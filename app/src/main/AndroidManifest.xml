@@ -45,6 +45,9 @@
             android:name=".ui.MainActivity"
             android:exported="false"
             android:label="app" />
+        <activity
+            android:name=".ui.BodyFatDetailActivity"
+            android:exported="false" />
 
         <service android:name=".BleService" />
         <service

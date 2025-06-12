@@ -6,6 +6,8 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -20,9 +22,12 @@ import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 public class ProfileActivity extends AppCompatActivity {
     private TextView tvUsername, tvUserId, tvRegisterDate;
-    private Button btnChangePassword, btnClearData, btnLogout;
+    private TextView tvSex, tvAge, tvHeight;
+    private Button btnChangePassword, btnClearData, btnLogout, btnEditProfile;
     private UserDAO userDAO;
     private SharedPreferences preferences;
+    private int userId;
+    private UserDAO.UserInfo userInfo;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -32,6 +37,7 @@ public class ProfileActivity extends AppCompatActivity {
 
         userDAO = new UserDAO(this);
         preferences = getSharedPreferences("login_prefs", MODE_PRIVATE);
+        userId = preferences.getInt("user_id", -1);
 
         BottomNavigationView bottomNavigationView = findViewById(R.id.bottom_navigation);
         BottomNavigationHelper.setupBottomNavigation(this, bottomNavigationView, R.id.navigation_profile);
@@ -45,22 +51,33 @@ public class ProfileActivity extends AppCompatActivity {
         tvUsername = findViewById(R.id.tv_username);
         tvUserId = findViewById(R.id.tv_user_id);
         tvRegisterDate = findViewById(R.id.tv_register_date);
+        tvSex = findViewById(R.id.tv_sex);
+        tvAge = findViewById(R.id.tv_age);
+        tvHeight = findViewById(R.id.tv_height);
 
         btnChangePassword = findViewById(R.id.btn_change_password);
         btnClearData = findViewById(R.id.btn_clear_data);
         btnLogout = findViewById(R.id.btn_logout);
+        btnEditProfile = findViewById(R.id.btn_edit_profile);
     }
 
     private void loadUserInfo() {
         // 从SharedPreferences获取当前登录用户信息
         String username = preferences.getString("username", "");
-        int userId = preferences.getInt("user_id", -1);
         String registerDate = preferences.getString("register_date", "");
 
         // 显示用户信息
         tvUsername.setText("用户名： "+username);
         tvUserId.setText("用户ID： "+userId);
         tvRegisterDate.setText("注册日期： "+registerDate);
+
+        // 从数据库获取用户详细信息
+        userInfo = userDAO.getUserInfo(userId);
+        if (userInfo != null) {
+            tvSex.setText(userInfo.getSex() == 1 ? "男" : "女");
+            tvAge.setText(String.valueOf(userInfo.getAge()));
+            tvHeight.setText(userInfo.getHeight() + " cm");
+        }
     }
 
     private void setupButtonListeners() {
@@ -75,6 +92,86 @@ public class ProfileActivity extends AppCompatActivity {
         btnLogout.setOnClickListener(v -> {
             logout();
         });
+
+        btnEditProfile.setOnClickListener(v -> {
+            showEditProfileDialog();
+        });
+    }
+
+    private void showEditProfileDialog() {
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_edit_profile, null);
+        RadioGroup radioGroupSex = dialogView.findViewById(R.id.dialog_radio_sex);
+        RadioButton radioMale = dialogView.findViewById(R.id.dialog_radio_male);
+        RadioButton radioFemale = dialogView.findViewById(R.id.dialog_radio_female);
+        EditText etAge = dialogView.findViewById(R.id.dialog_et_age);
+        EditText etHeight = dialogView.findViewById(R.id.dialog_et_height);
+
+        // 设置当前值
+        if (userInfo != null) {
+            if (userInfo.getSex() == 1) {
+                radioMale.setChecked(true);
+            } else {
+                radioFemale.setChecked(true);
+            }
+            etAge.setText(String.valueOf(userInfo.getAge()));
+            etHeight.setText(String.valueOf(userInfo.getHeight()));
+        }
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle("编辑个人信息")
+                .setView(dialogView)
+                .setPositiveButton("保存", null)
+                .setNegativeButton("取消", null)
+                .create();
+
+        dialog.setOnShowListener(dialogInterface -> {
+            Button button = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+            button.setOnClickListener(view -> {
+                // 获取用户输入
+                int sex = radioMale.isChecked() ? 1 : 0;
+                String ageStr = etAge.getText().toString().trim();
+                String heightStr = etHeight.getText().toString().trim();
+
+                // 验证输入
+                if (ageStr.isEmpty() || heightStr.isEmpty()) {
+                    Toast.makeText(ProfileActivity.this, "请填写所有字段", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                int age, height;
+                try {
+                    age = Integer.parseInt(ageStr);
+                    height = Integer.parseInt(heightStr);
+                } catch (NumberFormatException e) {
+                    Toast.makeText(ProfileActivity.this, "年龄和身高必须为数字", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                // 验证年龄和身高范围
+                if (age < 10 || age > 120) {
+                    Toast.makeText(ProfileActivity.this, "年龄必须在10-120岁之间", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                if (height < 100 || height > 250) {
+                    Toast.makeText(ProfileActivity.this, "身高必须在100-250厘米之间", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                // 更新用户信息
+                boolean success = userDAO.updateUserInfo(userId, sex, age, height);
+                if (success) {
+                    Toast.makeText(ProfileActivity.this, "个人信息更新成功", Toast.LENGTH_SHORT).show();
+                    // 刷新显示
+                    loadUserInfo();
+                    dialog.dismiss();
+                } else {
+                    Toast.makeText(ProfileActivity.this, "更新失败，请重试", Toast.LENGTH_SHORT).show();
+                }
+            });
+        });
+
+        dialog.show();
     }
 
     private void showChangePasswordDialog() {

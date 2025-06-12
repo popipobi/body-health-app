@@ -2,6 +2,7 @@ package com.example.myapplication;
 
 import android.app.Service;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Binder;
 import android.os.IBinder;
 import android.util.Log;
@@ -199,7 +200,14 @@ public class EightElectrodeScaleService extends Service {
 
                     // 如果是稳定体重，更新体脂计算器的体重
                     if (state == 2) { // 2 = 稳定体重
-                        bodyFatCalculator.setUserInfo(0, 24, 157, weight); // 使用默认值，后续可以从用户配置获取
+                        // 从SharedPreferences获取用户信息
+                        SharedPreferences preferences = getSharedPreferences("login_prefs", MODE_PRIVATE);
+                        int sex = preferences.getInt("user_sex", 1); // 默认男性
+                        int age = preferences.getInt("user_age", 30); // 默认30岁
+                        int height = preferences.getInt("user_height", 170); // 默认170cm
+
+                        // 使用用户的实际信息设置体脂计算器
+                        bodyFatCalculator.setUserInfo(sex, age, height, weight);
                     }
                 }
 

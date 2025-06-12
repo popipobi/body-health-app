@@ -45,11 +45,14 @@ public class UserDAO {
     }
 
     // register
-    public boolean registerUser(String username, String password) {
+    public boolean registerUser(String username, String password, int sex, int age, int height) {
         open();
         ContentValues values = new ContentValues();
         values.put(DatabaseHelper.COLUMN_USERNAME, username);
         values.put(DatabaseHelper.COLUMN_PASSWORD, hashPassword(password));
+        values.put(DatabaseHelper.COLUMN_SEX, sex);
+        values.put(DatabaseHelper.COLUMN_AGE, age);
+        values.put(DatabaseHelper.COLUMN_HEIGHT, height);
 
         try {
             long userId = database.insert(DatabaseHelper.TABLE_USERS, null, values);
@@ -59,6 +62,82 @@ public class UserDAO {
             close();
             return false;
         }
+    }
+
+    // 更新用户基本信息
+    public boolean updateUserInfo(int userId, int sex, int age, int height) {
+        open();
+
+        ContentValues values = new ContentValues();
+        values.put(DatabaseHelper.COLUMN_SEX, sex);
+        values.put(DatabaseHelper.COLUMN_AGE, age);
+        values.put(DatabaseHelper.COLUMN_HEIGHT, height);
+
+        String whereClause = DatabaseHelper.COLUMN_ID + " = ?";
+        String[] whereArgs = {String.valueOf(userId)};
+
+        int rowsAffected = database.update(DatabaseHelper.TABLE_USERS, values, whereClause, whereArgs);
+        close();
+
+        return rowsAffected > 0;
+    }
+
+    // 获取用户基本信息
+    public UserInfo getUserInfo(int userId) {
+        open();
+
+        UserInfo userInfo = null;
+        String[] columns = {
+                DatabaseHelper.COLUMN_USERNAME,
+                DatabaseHelper.COLUMN_SEX,
+                DatabaseHelper.COLUMN_AGE,
+                DatabaseHelper.COLUMN_HEIGHT
+        };
+        String selection = DatabaseHelper.COLUMN_ID + " = ?";
+        String[] selectionArgs = {String.valueOf(userId)};
+
+        Cursor cursor = database.query(
+                DatabaseHelper.TABLE_USERS,
+                columns,
+                selection,
+                selectionArgs,
+                null,
+                null,
+                null
+        );
+
+        if (cursor != null && cursor.moveToFirst()) {
+            String username = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_USERNAME));
+            int sex = cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_SEX));
+            int age = cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_AGE));
+            int height = cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_HEIGHT));
+
+            userInfo = new UserInfo(username, sex, age, height);
+            cursor.close();
+        }
+
+        close();
+        return userInfo;
+    }
+
+    // 用户基本信息类
+    public static class UserInfo {
+        private String username;
+        private int sex;
+        private int age;
+        private int height;
+
+        public UserInfo(String username, int sex, int age, int height) {
+            this.username = username;
+            this.sex = sex;
+            this.age = age;
+            this.height = height;
+        }
+
+        public String getUsername() { return username; }
+        public int getSex() { return sex; }
+        public int getAge() { return age; }
+        public int getHeight() { return height; }
     }
 
     public boolean checkLogin(String username, String password) {

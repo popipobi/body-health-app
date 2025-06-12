@@ -95,6 +95,18 @@ public class MeasurementDAO {
         return rowsDeleted;
     }
 
+    public boolean deleteMeasurement(int measurementId) {
+        open();
+
+        String whereClause = DatabaseHelper.COLUMN_MEASUREMENT_ID + " = ?";
+        String[] whereArgs = {String.valueOf(measurementId)};
+
+        int rowsDeleted = database.delete(DatabaseHelper.TABLE_MEASUREMENTS, whereClause, whereArgs);
+        close();
+
+        return rowsDeleted > 0;
+    }
+
     private String getCurrentDateTime() {
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
         Date date = new Date();

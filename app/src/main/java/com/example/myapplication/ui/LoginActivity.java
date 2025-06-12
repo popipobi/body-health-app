@@ -66,12 +66,23 @@ public class LoginActivity extends AppCompatActivity {
                 if (success) {
                     int userId = userDAO.getUserId(username);
 
+                    // 获取用户信息
+                    UserDAO.UserInfo userInfo = userDAO.getUserInfo(userId);
+
                     // 保存登录状态
                     SharedPreferences.Editor editor = sharedPreferences.edit();
                     editor.putBoolean("is_logged_in", true);
                     editor.putString("username", username);
                     editor.putInt("user_id", userId);
                     editor.putString("register_date", getCurrentDate());
+
+                    // 保存用户个人信息，用于体脂计算
+                    if (userInfo != null) {
+                        editor.putInt("user_sex", userInfo.getSex());
+                        editor.putInt("user_age", userInfo.getAge());
+                        editor.putInt("user_height", userInfo.getHeight());
+                    }
+
                     editor.apply();
 
                     Toast.makeText(LoginActivity.this, "登录成功", Toast.LENGTH_SHORT).show();

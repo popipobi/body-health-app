@@ -46,6 +46,7 @@ import com.example.myapplication.ByteUtils;
 import com.example.myapplication.EightElectrodeScaleService;
 import com.example.myapplication.adapter.DeviceListAdapter;
 import com.example.myapplication.R;
+import com.example.myapplication.database.dao.BodyFatMeasurementDAO;
 import com.example.myapplication.database.dao.MeasurementDAO;
 import com.github.mikephil.charting.charts.LineChart;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
@@ -64,6 +65,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private Button filterButton;
     private Button btnSaveData;
     private MeasurementDAO measurementDAO;
+    private BodyFatMeasurementDAO bodyFatMeasurementDAO;
     private int currentSystolic = 0;
     private int currentDiastolic = 0;
     private int currentPulse = 0;
@@ -150,6 +152,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         btnSaveData = findViewById(R.id.btn_save_data);
         measurementDAO = new MeasurementDAO(this);
+
+        bodyFatMeasurementDAO = new BodyFatMeasurementDAO(this);
 
         // 初始化体脂数据容器
         bodyFatDataContainer = findViewById(R.id.body_fat_data_container);
@@ -700,6 +704,55 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             scanBleDevice();
         } else if (v.getId() == R.id.btn_save_data) {
             saveMeasurementData();
+        } else if (v.getId() == R.id.btn_save_body_fat_data) {
+            saveBodyFatData();
+        }
+    }
+
+    private void saveBodyFatData() {
+        try {
+            // 获取用户ID和其他信息
+            SharedPreferences preferences = getSharedPreferences("login_prefs", MODE_PRIVATE);
+            int userId = preferences.getInt("user_id", -1);
+            int userHeight = preferences.getInt("user_height", 170); // 获取用户身高
+
+            if (userId == -1) {
+                Toast.makeText(this, "用户未登录", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            // 从UI获取当前体脂数据
+            float weight = Float.parseFloat(tvWeightValue.getText().toString());
+            double bmi = Double.parseDouble(tvBmiValue.getText().toString());
+            double bodyFatRate = Double.parseDouble(tvBodyFatRate.getText().toString().replace("%", ""));
+            double bodyFatMass = Double.parseDouble(tvBodyFatMass.getText().toString().replace(" kg", ""));
+            double waterRate = Double.parseDouble(tvWaterRate.getText().toString().replace("%", ""));
+            double proteinRate = Double.parseDouble(tvProteinRate.getText().toString().replace("%", ""));
+            double muscleRate = Double.parseDouble(tvMuscleRate.getText().toString().replace("%", ""));
+            double muscleMass = Double.parseDouble(tvMuscleMass.getText().toString().replace(" kg", ""));
+            double boneMass = Double.parseDouble(tvBoneMass.getText().toString().replace(" kg", ""));
+            int visceralFat = Integer.parseInt(tvVisceralFat.getText().toString());
+            int bmr = Integer.parseInt(tvBmr.getText().toString().replace(" kcal", ""));
+            int bodyAge = Integer.parseInt(tvBodyAgeValue.getText().toString());
+            double idealWeight = Double.parseDouble(tvIdealWeight.getText().toString().replace(" kg", ""));
+
+            // 保存数据到数据库
+            long result = bodyFatMeasurementDAO.saveBodyFatMeasurement(
+                    userId, weight, bmi, bodyFatRate, bodyFatMass, waterRate, proteinRate,
+                    muscleRate, muscleMass, boneMass, visceralFat, bmr, bodyAge, idealWeight);
+
+            if (result > 0) {
+                Toast.makeText(this, "体脂数据保存成功", Toast.LENGTH_SHORT).show();
+                btnSaveBodyFatData.setEnabled(false);  // 禁用保存按钮，防止重复保存
+            } else {
+                Toast.makeText(this, "体脂数据保存失败", Toast.LENGTH_SHORT).show();
+            }
+        } catch (NumberFormatException e) {
+            Log.e(TAG, "解析体脂数据时出错: " + e.getMessage());
+            Toast.makeText(this, "数据格式错误，无法保存", Toast.LENGTH_SHORT).show();
+        } catch (Exception e) {
+            Log.e(TAG, "保存体脂数据时出错: " + e.getMessage());
+            Toast.makeText(this, "保存失败: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
 
