@@ -280,6 +280,28 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         int typeState = intent.getIntExtra("TYPE_STATE", -1);
                         int result = intent.getIntExtra("RESULT", -1);
                         Log.d(TAG, "八电极体脂秤状态: 类型=" + type + " 状态=" + typeState + " 结果=" + result);
+                    } else if ("BODY_FAT_RESULT".equals(dataType)) {
+                        // 处理体脂计算结果
+                        double bmi = intent.getDoubleExtra("BMI", 0);
+                        double bodyFatRate = intent.getDoubleExtra("BODY_FAT_RATE", 0);
+                        double waterRate = intent.getDoubleExtra("WATER_RATE", 0);
+                        int bmr = intent.getIntExtra("BMR", 0);
+                        int bodyAge = intent.getIntExtra("BODY_AGE", 0);
+
+                        Log.d(TAG, "收到体脂计算结果: BMI=" + bmi +
+                                " 体脂率=" + bodyFatRate + "% " +
+                                " 水分率=" + waterRate + "% " +
+                                " 基础代谢=" + bmr + "kcal " +
+                                " 身体年龄=" + bodyAge);
+
+                        // 更新UI
+                        runOnUiThread(() -> {
+                            // 这里可以根据需要更新UI显示体脂数据
+                            // 现在我们只在Logcat中输出，后续可以扩展UI
+
+                            // 例如，我们可以暂时在脉搏字段显示体脂率
+                            tv_pulse.setText(String.format("体脂率: %.1f%%", bodyFatRate));
+                        });
                     }
                     break;
             }

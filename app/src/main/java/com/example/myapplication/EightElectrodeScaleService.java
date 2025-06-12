@@ -42,10 +42,15 @@ public class EightElectrodeScaleService extends Service {
     private boolean isConnected = false;
     private String connectedDeviceAddress = null;
 
+    private BodyFatCalculator bodyFatCalculator;
+
     @Override
     public void onCreate() {
         super.onCreate();
         Log.d(TAG, "服务创建");
+
+        bodyFatCalculator = new BodyFatCalculator();
+
         initAiLinkSDK();
     }
 
@@ -161,6 +166,22 @@ public class EightElectrodeScaleService extends Service {
                     intent.putExtra("TYPE_STATE", typeState);
                     intent.putExtra("RESULT", result);
                     sendBroadcast(intent);
+
+                    // 如果是稳定体重状态，更新体脂计算器的体重
+                    if (type == 1 && typeState == 2) { // 1=体重测量，2=稳定体重
+                        // 稳定体重已经在onWeight回调中处理
+                    }
+
+                    // 如果是测量结束，尝试计算体脂数据
+                    if (type == 15) { // 15 = 测量结束
+                        if (bodyFatCalculator.canCalculate()) {
+                            BodyFatCalculator.BodyFatResult bodyFatResult = bodyFatCalculator.calculateBodyFat();
+                            if (bodyFatResult != null) {
+                                // 广播体脂计算结果
+                                sendBodyFatResult(bodyFatResult);
+                            }
+                        }
+                    }
                 }
 
                 @Override
@@ -175,11 +196,16 @@ public class EightElectrodeScaleService extends Service {
                     intent.putExtra("UNIT", unit);
                     intent.putExtra("DECIMAL", decimal);
                     sendBroadcast(intent);
+
+                    // 如果是稳定体重，更新体脂计算器的体重
+                    if (state == 2) { // 2 = 稳定体重
+                        bodyFatCalculator.setUserInfo(0, 24, 157, weight); // 使用默认值，后续可以从用户配置获取
+                    }
                 }
 
                 @Override
                 public void onImpedance(int adc, int part, int arithmetic) {
-                    Log.d(TAG, "阻抗数据: 阻抗值=" + adc + " 部位=" + part + " 算法=" + arithmetic);
+                    Log.d(TAG, "阻抗数据: 阻抗=" + adc + " 部位=" + part + " 算法=" + arithmetic);
 
                     // 广播阻抗数据
                     Intent intent = new Intent(ACTION_DATA_AVAILABLE);
@@ -188,6 +214,18 @@ public class EightElectrodeScaleService extends Service {
                     intent.putExtra("PART", part);
                     intent.putExtra("ARITHMETIC", arithmetic);
                     sendBroadcast(intent);
+
+                    // 更新体脂计算器的阻抗数据
+                    bodyFatCalculator.updateImpedance(adc, part, arithmetic);
+
+                    // 检查是否可以计算体脂 - 使用不同的变量名
+                    if (bodyFatCalculator.canCalculate()) {
+                        BodyFatCalculator.BodyFatResult bodyFatResult = bodyFatCalculator.calculateBodyFat();
+                        if (bodyFatResult != null) {
+                            // 广播体脂计算结果
+                            sendBodyFatResult(bodyFatResult);
+                        }
+                    }
                 }
 
                 @Override
@@ -243,6 +281,45 @@ public class EightElectrodeScaleService extends Service {
                 }
             });
         }
+    }
+
+    private void sendBodyFatResult(BodyFatCalculator.BodyFatResult result) {
+        Intent intent = new Intent(ACTION_DATA_AVAILABLE);
+        intent.putExtra("DATA_TYPE", "BODY_FAT_RESULT");
+
+        intent.putExtra("BMI", result.bmi);
+        intent.putExtra("BODY_FAT_RATE", result.bodyFatRate);
+        intent.putExtra("BODY_FAT_MASS", result.bodyFatMass);
+        intent.putExtra("WATER_RATE", result.waterRate);
+        intent.putExtra("PROTEIN_RATE", result.proteinRate);
+        intent.putExtra("MUSCLE_RATE", result.muscleRate);
+        intent.putExtra("MUSCLE_MASS", result.muscleMass);
+        intent.putExtra("BONE_MASS", result.boneMass);
+        intent.putExtra("VISCERAL_FAT", result.visceralFat);
+        intent.putExtra("BMR", result.bmr);
+        intent.putExtra("BODY_AGE", result.bodyAge);
+        intent.putExtra("IDEAL_WEIGHT", result.idealWeight);
+
+        // 如果有骨骼肌量，也添加它
+        if (result.skeletalMuscleMass > 0) {
+            intent.putExtra("SKELETAL_MUSCLE_MASS", result.skeletalMuscleMass);
+        }
+
+        sendBroadcast(intent);
+
+        Log.d(TAG, "发送完整体脂计算结果: " +
+                "\nBMI = " + result.bmi +
+                "\n体脂率 = " + result.bodyFatRate + "%" +
+                "\n体脂量 = " + result.bodyFatMass + "kg" +
+                "\n水分率 = " + result.waterRate + "%" +
+                "\n蛋白率 = " + result.proteinRate + "%" +
+                "\n肌肉率 = " + result.muscleRate + "%" +
+                "\n肌肉量 = " + result.muscleMass + "kg" +
+                "\n骨量 = " + result.boneMass + "kg" +
+                "\n内脏脂肪 = " + result.visceralFat +
+                "\n基础代谢 = " + result.bmr + "kcal" +
+                "\n身体年龄 = " + result.bodyAge +
+                "\n理想体重 = " + result.idealWeight + "kg");
     }
 
     // 扫描设备
