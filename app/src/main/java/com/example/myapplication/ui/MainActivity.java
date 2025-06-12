@@ -93,6 +93,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private Button btnSaveBodyFatData;
     private Button btnDisconnect;
 
+    private Button modeToggleButton;
+    private boolean isAutoMode = true; // 默认自动模式
+    private boolean isAutoConnecting = false; // 是否正在自动连接
+
     private RecyclerView rvDeviceList;
     // 蓝牙相关变量
     private BluetoothManager myBluetoothManager;
@@ -141,7 +145,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         tv_diastolic = findViewById(R.id.tv_diastolic);
         tv_pulse = findViewById(R.id.tv_pulse);
         searchButton = findViewById(R.id.search);
-        filterButton = findViewById(R.id.filter_button);
+        modeToggleButton = findViewById(R.id.mode_toggle_button);
         rvDeviceList = (RecyclerView) findViewById(R.id.rv_device_list);
         BottomNavigationView bottomNavigationView = findViewById(R.id.bottom_navigation);
         BottomNavigationHelper.setupBottomNavigation(this, bottomNavigationView, R.id.navigation_measure);
@@ -181,7 +185,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         btnDisconnect.setOnClickListener(this);
 
         searchButton.setOnClickListener(this);
-        filterButton.setOnClickListener(this);
+        modeToggleButton.setOnClickListener(this);
         disconnectButton.setOnClickListener(this);
         btnSaveData.setOnClickListener(this);
 
@@ -272,6 +276,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             switch (action) {
                 // 在EightElectrodeReceiver中，添加更多日志记录
                 case EightElectrodeScaleService.ACTION_DEVICE_CONNECTED:
+                    isAutoConnecting = false; // 重置状态
                     String connectedAddress = intent.getStringExtra(EightElectrodeScaleService.EXTRA_DEVICE_ADDRESS);
                     Log.d(TAG, "收到八电极体脂秤连接广播: " + connectedAddress);
                     currentDeviceType = DeviceType.EIGHT_ELECTRODE_SCALE;
@@ -282,6 +287,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     break;
 
                 case EightElectrodeScaleService.ACTION_DEVICE_DISCONNECTED:
+                    isAutoConnecting = false; // 重置状态
                     String disconnectedAddress = intent.getStringExtra(EightElectrodeScaleService.EXTRA_DEVICE_ADDRESS);
                     Log.d(TAG, "八电极体脂秤已断开: " + disconnectedAddress);
                     if (currentDeviceType == DeviceType.EIGHT_ELECTRODE_SCALE) {
@@ -520,8 +526,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             String deviceName = device.getName();
             int rssi = result.getRssi();
 
-            if (filterNoName && (deviceName==null || deviceName.isEmpty())) return;
+            // 默认过滤空设备名
+            if (deviceName == null || deviceName.isEmpty()) return;
 
+            // 自动模式：检测到目标设备立即连接
+            if (isAutoMode && isTargetDevice(deviceName)) {
+                Log.d(TAG, "自动模式检测到目标设备: " + deviceName);
+                autoConnectToDevice(device, deviceName);
+                return; // 自动连接时不添加到列表
+            }
+
+            // 手动模式：添加到设备列表
             if (!myBluetoothDeviceList.contains(device)) {
                 myBluetoothDeviceList.add(device);
                 myRssiList.add(String.valueOf(rssi));
@@ -575,9 +590,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
             switch (action) {
                 case BleService.ACTION_GATT_CONNECTED:
+                    isAutoConnecting = false; // 重置状态
                     Toast.makeText(MainActivity.this, "蓝牙已连接", Toast.LENGTH_SHORT).show();
                     break;
                 case BleService.ACTION_GATT_DISCONNECTED:
+                    isAutoConnecting = false; // 重置状态
                     Toast.makeText(MainActivity.this, "蓝牙已断开", Toast.LENGTH_SHORT).show();
                     myBleService.release();
                     break;
@@ -586,6 +603,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     myBleService.setBleNotification();
                     break;
                 case BleService.ACTION_CONNECTING_FAIL:
+                    isAutoConnecting = false; // 重置状态
                     Toast.makeText(MainActivity.this, "蓝牙连接失败", Toast.LENGTH_SHORT).show();
                     myBleService.disconnect();
                     break;
@@ -670,23 +688,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             initData();
             //注册蓝牙数据接收器
             registerBleReceiver();
-        } else if (v.getId() == R.id.filter_button) {
-            filterNoName = !filterNoName;
-
-            if (filterNoName) {
-                filterButton.setText("显示全部");
-                filterButton.setBackgroundTintList(ColorStateList.valueOf(getResources().getColor(android.R.color.holo_orange_dark)));
-            } else {
-                filterButton.setText("过滤空设备名");
-                filterButton.setBackgroundTintList(ColorStateList.valueOf(getResources().getColor(android.R.color.holo_blue_dark)));
-            }
-            if (isScanning || !myBluetoothDeviceList.isEmpty()) {
-                myBluetoothDeviceList.clear();
-                myRssiList.clear();
-                myDeviceListAdapter.notifyDataSetChanged();
-
-                scanBleDevice();
-            }
+        } else if (v.getId() == R.id.mode_toggle_button) {
+            toggleMode();
         } else if (v.getId() == R.id.disconnect_button) {
             // 根据当前连接的设备类型断开连接
             if (currentDeviceType == DeviceType.BLOOD_PRESSURE && myBleService != null) {
@@ -706,6 +709,21 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             saveMeasurementData();
         } else if (v.getId() == R.id.btn_save_body_fat_data) {
             saveBodyFatData();
+        }
+    }
+
+    private void toggleMode() {
+        isAutoMode = !isAutoMode;
+        updateModeButton();
+    }
+
+    private void updateModeButton() {
+        if (isAutoMode) {
+            modeToggleButton.setText("自动模式");
+            modeToggleButton.setBackgroundTintList(ColorStateList.valueOf(getResources().getColor(android.R.color.holo_orange_dark)));
+        } else {
+            modeToggleButton.setText("手动模式");
+            modeToggleButton.setBackgroundTintList(ColorStateList.valueOf(getResources().getColor(android.R.color.holo_blue_dark)));
         }
     }
 
@@ -804,7 +822,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
-    // 修改现有的showDeviceSearchUI方法
     public void showDeviceSearchUI() {
         deviceSearchContainer.setVisibility(View.VISIBLE);
         healthDataContainer.setVisibility(View.GONE);
@@ -812,5 +829,110 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         // 重置数据和按钮状态
         resetDisplayValues();
+    }
+
+    /**
+     * 判断是否为目标设备（血压计或八电极体脂秤）
+     */
+    private boolean isTargetDevice(String deviceName) {
+        if (deviceName == null) return false;
+
+        // 血压计
+        if ("BM100B".equals(deviceName)) {
+            return true;
+        }
+
+        // 八电极体脂秤
+        if (deviceName.contains("AiLink")) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * 获取设备类型
+     */
+    private DeviceType getDeviceType(String deviceName) {
+        if (deviceName == null) return DeviceType.NONE;
+
+        if ("BM100B".equals(deviceName)) {
+            return DeviceType.BLOOD_PRESSURE;
+        }
+
+        if (deviceName.contains("AiLink")) {
+            return DeviceType.EIGHT_ELECTRODE_SCALE;
+        }
+
+        return DeviceType.NONE;
+    }
+
+    /**
+     * 自动连接到检测到的目标设备
+     */
+    private void autoConnectToDevice(BluetoothDevice device, String deviceName) {
+        // 如果已经在连接中，忽略
+        if (isAutoConnecting) {
+            Log.d(TAG, "已经在自动连接中，忽略设备: " + deviceName);
+            return;
+        }
+
+        isAutoConnecting = true; // 设置连接状态
+
+        // 停止扫描
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN)
+                != PackageManager.PERMISSION_GRANTED) {
+            return;
+        }
+        bluetoothLeScanner.stopScan(myScanCallback);
+        isScanning = false;
+
+        // 同时停止AILink SDK扫描
+        if (mEightElectrodeScaleService != null) {
+            mEightElectrodeScaleService.stopScan();
+        }
+
+        String deviceAddress = device.getAddress();
+        DeviceType detectedDeviceType = getDeviceType(deviceName);
+
+        Log.d(TAG, "开始自动连接设备: " + deviceName + " (" + deviceAddress + ")");
+
+        // 显示连接提示
+        runOnUiThread(() -> {
+            Toast.makeText(this, "检测到" + getDeviceTypeName(detectedDeviceType) +
+                    "，正在自动连接...", Toast.LENGTH_SHORT).show();
+        });
+
+        // 根据设备类型进行连接
+        if (detectedDeviceType == DeviceType.BLOOD_PRESSURE) {
+            // 连接血压计
+            myBleService.connect(myBluetoothAdapter, deviceAddress);
+            currentDeviceType = DeviceType.BLOOD_PRESSURE;
+        } else if (detectedDeviceType == DeviceType.EIGHT_ELECTRODE_SCALE) {
+            // 连接八电极体脂秤
+            if (mEightElectrodeScaleService != null) {
+                mEightElectrodeScaleService.connect(deviceAddress);
+                currentDeviceType = DeviceType.EIGHT_ELECTRODE_SCALE;
+            } else {
+                Log.e(TAG, "八电极体脂秤服务未初始化");
+                runOnUiThread(() -> {
+                    Toast.makeText(this, "八电极体脂秤服务未初始化", Toast.LENGTH_SHORT).show();
+                });
+            }
+        }
+    }
+
+    /**
+     * 获取设备类型的中文名称
+     */
+    private String getDeviceTypeName(DeviceType deviceType) {
+        switch (deviceType) {
+            case BLOOD_PRESSURE:
+                return "血压计";
+            case EIGHT_ELECTRODE_SCALE:
+                return "八电极体脂秤";
+            default:
+                return "未知设备";
+        }
     }
 }

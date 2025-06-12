@@ -238,15 +238,15 @@
                     android:elevation="4dp"
                     android:layout_marginEnd="8dp" />
 
-                <!-- 过滤无名称设备按钮 -->
+                <!-- 自动/手动模式切换按钮 -->
                 <Button
-                    android:id="@+id/filter_button"
+                    android:id="@+id/mode_toggle_button"
                     android:layout_width="wrap_content"
                     android:layout_height="48dp"
-                    android:text="过滤空设备名"
+                    android:text="自动模式"
                     android:textSize="16sp"
                     android:textColor="@android:color/white"
-                    android:backgroundTint="#1976D2"
+                    android:backgroundTint="#FF9800"
                     android:elevation="4dp" />
             </LinearLayout>
 
