@@ -161,6 +161,13 @@ public class ProfileActivity extends AppCompatActivity {
                 // 更新用户信息
                 boolean success = userDAO.updateUserInfo(userId, sex, age, height);
                 if (success) {
+                    // 同步更新SharedPreferences
+                    SharedPreferences.Editor editor = getSharedPreferences("login_prefs", MODE_PRIVATE).edit();
+                    editor.putInt("user_sex", sex);
+                    editor.putInt("user_age", age);
+                    editor.putInt("user_height", height);
+                    editor.apply();
+
                     Toast.makeText(ProfileActivity.this, "个人信息更新成功", Toast.LENGTH_SHORT).show();
                     // 刷新显示
                     loadUserInfo();

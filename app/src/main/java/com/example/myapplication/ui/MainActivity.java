@@ -591,11 +591,22 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             switch (action) {
                 case BleService.ACTION_GATT_CONNECTED:
                     isAutoConnecting = false; // 重置状态
-                    Toast.makeText(MainActivity.this, "蓝牙已连接", Toast.LENGTH_SHORT).show();
+                    currentDeviceType = DeviceType.BLOOD_PRESSURE;
+                    runOnUiThread(() -> {
+                        Toast.makeText(MainActivity.this, "血压计已连接", Toast.LENGTH_SHORT).show();
+                        showHealthDataUI(); // 跳转到血压测量页面
+                    });
                     break;
                 case BleService.ACTION_GATT_DISCONNECTED:
                     isAutoConnecting = false; // 重置状态
-                    Toast.makeText(MainActivity.this, "蓝牙已断开", Toast.LENGTH_SHORT).show();
+                    if (currentDeviceType == DeviceType.BLOOD_PRESSURE) {
+                        currentDeviceType = DeviceType.NONE; // 重置设备类型
+                    }
+                    runOnUiThread(() -> {
+                        Toast.makeText(MainActivity.this, "血压计已断开", Toast.LENGTH_SHORT).show();
+                        // 可以选择是否自动回到搜索页面
+                        // showDeviceSearchUI();
+                    });
                     myBleService.release();
                     break;
                 case BleService.ACTION_GATT_SERVICES_DISCOVERD:
@@ -604,7 +615,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     break;
                 case BleService.ACTION_CONNECTING_FAIL:
                     isAutoConnecting = false; // 重置状态
-                    Toast.makeText(MainActivity.this, "蓝牙连接失败", Toast.LENGTH_SHORT).show();
+                    currentDeviceType = DeviceType.NONE; // 重置设备类型
+                    runOnUiThread(() -> {
+                        Toast.makeText(MainActivity.this, "血压计连接失败", Toast.LENGTH_SHORT).show();
+                        // 连接失败后可以选择回到搜索页面
+                        showDeviceSearchUI();
+                    });
                     myBleService.disconnect();
                     break;
                 case BleService.ACTION_DATA_AVAILABLE:
@@ -691,25 +707,70 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         } else if (v.getId() == R.id.mode_toggle_button) {
             toggleMode();
         } else if (v.getId() == R.id.disconnect_button) {
-            // 根据当前连接的设备类型断开连接
-            if (currentDeviceType == DeviceType.BLOOD_PRESSURE && myBleService != null) {
-                myBleService.disconnect();
-                Toast.makeText(this, "断开血压计连接", Toast.LENGTH_SHORT).show();
-            } else if (currentDeviceType == DeviceType.EIGHT_ELECTRODE_SCALE && mEightElectrodeScaleService != null) {
-                mEightElectrodeScaleService.disconnect();
-                Toast.makeText(this, "断开八电极体脂秤连接", Toast.LENGTH_SHORT).show();
-            }
-
-            showDeviceSearchUI();
-            resetDisplayValues();
-            scanBleDevice();
-
-            scanBleDevice();
+            disconnectCurrentDevice();
         } else if (v.getId() == R.id.btn_save_data) {
             saveMeasurementData();
         } else if (v.getId() == R.id.btn_save_body_fat_data) {
             saveBodyFatData();
+        } else if (v.getId() == R.id.btn_disconnect) {
+            // 体脂数据界面的断开连接
+            disconnectCurrentDevice();
         }
+    }
+
+    /**
+     * 断开当前连接的设备
+     */
+    private void disconnectCurrentDevice() {
+        Log.d(TAG, "断开当前设备连接，设备类型: " + currentDeviceType);
+
+        // 根据当前连接的设备类型断开连接
+        if (currentDeviceType == DeviceType.BLOOD_PRESSURE && myBleService != null) {
+            myBleService.disconnect();
+            Toast.makeText(this, "断开血压计连接", Toast.LENGTH_SHORT).show();
+        } else if (currentDeviceType == DeviceType.EIGHT_ELECTRODE_SCALE && mEightElectrodeScaleService != null) {
+            mEightElectrodeScaleService.disconnect();
+            Toast.makeText(this, "断开八电极体脂秤连接", Toast.LENGTH_SHORT).show();
+        } else {
+            Toast.makeText(this, "没有已连接的设备", Toast.LENGTH_SHORT).show();
+        }
+
+        // 重置当前设备类型
+        currentDeviceType = DeviceType.NONE;
+
+        // 回到蓝牙搜索界面
+        showDeviceSearchUI();
+
+        // 重置显示数据
+        resetDisplayValues();
+
+        // 重置体脂数据显示
+        resetBodyFatDisplayValues();
+
+        // 重新开始搜索（可选，你可以决定是否自动搜索）
+        // scanBleDevice();
+    }
+
+    /**
+     * 重置体脂数据显示
+     */
+    private void resetBodyFatDisplayValues() {
+        tvWeightValue.setText("0.0");
+        tvBmiValue.setText("0.0");
+        tvBodyAgeValue.setText("0");
+        tvBodyFatRate.setText("0.0%");
+        tvBodyFatMass.setText("0.0 kg");
+        tvMuscleRate.setText("0.0%");
+        tvMuscleMass.setText("0.0 kg");
+        tvWaterRate.setText("0.0%");
+        tvProteinRate.setText("0.0%");
+        tvBoneMass.setText("0.0 kg");
+        tvVisceralFat.setText("0");
+        tvBmr.setText("0 kcal");
+        tvIdealWeight.setText("0.0 kg");
+
+        // 禁用保存按钮
+        btnSaveBodyFatData.setEnabled(false);
     }
 
     private void toggleMode() {
