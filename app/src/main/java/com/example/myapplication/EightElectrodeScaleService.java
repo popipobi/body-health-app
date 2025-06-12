@@ -300,6 +300,8 @@ public class EightElectrodeScaleService extends Service {
         intent.putExtra("BODY_AGE", result.bodyAge);
         intent.putExtra("IDEAL_WEIGHT", result.idealWeight);
 
+        intent.putExtra("WEIGHT", bodyFatCalculator.getWeight());
+
         // 如果有骨骼肌量，也添加它
         if (result.skeletalMuscleMass > 0) {
             intent.putExtra("SKELETAL_MUSCLE_MASS", result.skeletalMuscleMass);
@@ -319,7 +321,8 @@ public class EightElectrodeScaleService extends Service {
                 "\n内脏脂肪 = " + result.visceralFat +
                 "\n基础代谢 = " + result.bmr + "kcal" +
                 "\n身体年龄 = " + result.bodyAge +
-                "\n理想体重 = " + result.idealWeight + "kg");
+                "\n理想体重 = " + result.idealWeight + "kg" +
+                "\n体重 = " + bodyFatCalculator.getWeight() + "kg");
     }
 
     // 扫描设备

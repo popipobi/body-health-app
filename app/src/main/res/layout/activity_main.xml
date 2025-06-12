@@ -34,165 +34,179 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
+
+
         <!-- 数据显示区 初始隐藏 -->
-    <LinearLayout
-        android:id="@+id/health_data_container"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical"
-        android:visibility="gone">
 
-        <!-- 血压数据显示卡片 -->
-        <androidx.cardview.widget.CardView
-            android:id="@+id/card_blood_pressure"
+        <LinearLayout
+            android:id="@+id/body_fat_data_container"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            app:cardElevation="4dp"
-            app:cardCornerRadius="12dp">
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:visibility="gone">
 
-            <LinearLayout
+            <!-- 在这里包含体脂数据布局 -->
+            <include layout="@layout/layout_body_fat_result" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/health_data_container"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <!-- 血压数据显示卡片 -->
+            <androidx.cardview.widget.CardView
+                android:id="@+id/card_blood_pressure"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp">
+                android:layout_marginBottom="16dp"
+                app:cardElevation="4dp"
+                app:cardCornerRadius="12dp">
 
-                <!-- 当前血压显示 -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical">
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="当前血压: "
-                        android:textSize="18sp"
-                        android:textColor="#000" />
+                    android:orientation="vertical"
+                    android:padding="16dp">
 
-                    <TextView
-                        android:id="@+id/current_value_xueya"
-                        android:layout_width="wrap_content"
+                    <!-- 当前血压显示 -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="0"
-                        android:textSize="20sp"
-                        android:textStyle="bold"
-                        android:layout_marginStart="8dp"
-                        android:textColor="#FF5722" />
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="当前血压: "
+                            android:textSize="18sp"
+                            android:textColor="#000" />
+
+                        <TextView
+                            android:id="@+id/current_value_xueya"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="0"
+                            android:textSize="20sp"
+                            android:textStyle="bold"
+                            android:layout_marginStart="8dp"
+                            android:textColor="#FF5722" />
+                    </LinearLayout>
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="#E0E0E0"
+                        android:layout_marginTop="8dp"
+                        android:layout_marginBottom="8dp" />
+
+                    <!-- 收缩压显示 -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_marginTop="4dp">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="收缩压: "
+                            android:textSize="16sp"
+                            android:textColor="#333333" />
+
+                        <TextView
+                            android:id="@+id/tv_systolic"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="0 mmHg"
+                            android:textSize="16sp"
+                            android:textColor="#E53935" />
+                    </LinearLayout>
+
+                    <!-- 舒张压显示 -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_marginTop="4dp">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="舒张压: "
+                            android:textSize="16sp"
+                            android:textColor="#333333" />
+
+                        <TextView
+                            android:id="@+id/tv_diastolic"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="0 mmHg"
+                            android:textSize="16sp"
+                            android:textColor="#1E88E5" />
+                    </LinearLayout>
+
+                    <!-- 脉搏显示 -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_marginTop="4dp">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="脉搏: "
+                            android:textSize="16sp"
+                            android:textColor="#333333" />
+
+                        <TextView
+                            android:id="@+id/tv_pulse"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="0 bpm"
+                            android:textSize="16sp"
+                            android:textColor="#7CB342" />
+                    </LinearLayout>
+
+                    <!--        保存数据按钮        -->
+                    <Button
+                        android:id="@+id/btn_save_data"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="保存测量数据"
+                        android:textSize="16sp"
+                        android:textColor="@android:color/white"
+                        android:backgroundTint="#009688"
+                        android:layout_marginTop="16dp"
+                        android:enabled="false" />
                 </LinearLayout>
+            </androidx.cardview.widget.CardView>
 
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:background="#E0E0E0"
-                    android:layout_marginTop="8dp"
-                    android:layout_marginBottom="8dp" />
+            <!-- 折线图 -->
+            <com.github.mikephil.charting.charts.LineChart
+                android:id="@+id/chart_bp"
+                android:layout_width="match_parent"
+                android:layout_height="250dp"
+                android:layout_marginBottom="16dp" />
 
-                <!-- 收缩压显示 -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginTop="4dp">
-
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="收缩压: "
-                        android:textSize="16sp"
-                        android:textColor="#333333" />
-
-                    <TextView
-                        android:id="@+id/tv_systolic"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="0 mmHg"
-                        android:textSize="16sp"
-                        android:textColor="#E53935" />
-                </LinearLayout>
-
-                <!-- 舒张压显示 -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginTop="4dp">
-
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="舒张压: "
-                        android:textSize="16sp"
-                        android:textColor="#333333" />
-
-                    <TextView
-                        android:id="@+id/tv_diastolic"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="0 mmHg"
-                        android:textSize="16sp"
-                        android:textColor="#1E88E5" />
-                </LinearLayout>
-
-                <!-- 脉搏显示 -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginTop="4dp">
-
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="脉搏: "
-                        android:textSize="16sp"
-                        android:textColor="#333333" />
-
-                    <TextView
-                        android:id="@+id/tv_pulse"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="0 bpm"
-                        android:textSize="16sp"
-                        android:textColor="#7CB342" />
-                </LinearLayout>
-
-                <!--        保存数据按钮        -->
-                <Button
-                    android:id="@+id/btn_save_data"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="保存测量数据"
-                    android:textSize="16sp"
-                    android:textColor="@android:color/white"
-                    android:backgroundTint="#009688"
-                    android:layout_marginTop="16dp"
-                    android:enabled="false" />
-            </LinearLayout>
-        </androidx.cardview.widget.CardView>
-
-        <!-- 折线图 -->
-        <com.github.mikephil.charting.charts.LineChart
-            android:id="@+id/chart_bp"
-            android:layout_width="match_parent"
-            android:layout_height="250dp"
-            android:layout_marginBottom="16dp" />
-
-        <!-- 断开连接按钮 -->
-        <Button
-            android:id="@+id/disconnect_button"
-            android:layout_width="wrap_content"
-            android:layout_height="48dp"
-            android:text="断开连接"
-            android:textSize="16sp"
-            android:textColor="@android:color/white"
-            android:backgroundTint="#F44336"
-            android:layout_gravity="center"
-            android:elevation="4dp" />
-    </LinearLayout>
+            <!-- 断开连接按钮 -->
+            <Button
+                android:id="@+id/disconnect_button"
+                android:layout_width="wrap_content"
+                android:layout_height="48dp"
+                android:text="断开连接"
+                android:textSize="16sp"
+                android:textColor="@android:color/white"
+                android:backgroundTint="#F44336"
+                android:layout_gravity="center"
+                android:elevation="4dp" />
+        </LinearLayout>
 
 
 

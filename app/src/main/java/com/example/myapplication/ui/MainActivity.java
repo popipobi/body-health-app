@@ -1,7 +1,5 @@
 package com.example.myapplication.ui;
 
-import static android.content.ContentValues.TAG;
-
 import android.Manifest;
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
@@ -76,6 +74,23 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private LineChart lineChart;
     private BloodPressureChart chartHelper;
 
+    private LinearLayout bodyFatDataContainer;
+    private TextView tvWeightValue;
+    private TextView tvBmiValue;
+    private TextView tvBodyAgeValue;
+    private TextView tvBodyFatRate;
+    private TextView tvBodyFatMass;
+    private TextView tvMuscleRate;
+    private TextView tvMuscleMass;
+    private TextView tvWaterRate;
+    private TextView tvProteinRate;
+    private TextView tvBoneMass;
+    private TextView tvVisceralFat;
+    private TextView tvBmr;
+    private TextView tvIdealWeight;
+    private Button btnSaveBodyFatData;
+    private Button btnDisconnect;
+
     private RecyclerView rvDeviceList;
     // 蓝牙相关变量
     private BluetoothManager myBluetoothManager;
@@ -135,6 +150,31 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         btnSaveData = findViewById(R.id.btn_save_data);
         measurementDAO = new MeasurementDAO(this);
+
+        // 初始化体脂数据容器
+        bodyFatDataContainer = findViewById(R.id.body_fat_data_container);
+
+        // 初始化体脂数据视图组件
+        tvWeightValue = findViewById(R.id.tv_weight_value);
+        tvBmiValue = findViewById(R.id.tv_bmi_value);
+        tvBodyAgeValue = findViewById(R.id.tv_body_age_value);
+        tvBodyFatRate = findViewById(R.id.tv_body_fat_rate);
+        tvBodyFatMass = findViewById(R.id.tv_body_fat_mass);
+        tvMuscleRate = findViewById(R.id.tv_muscle_rate);
+        tvMuscleMass = findViewById(R.id.tv_muscle_mass);
+        tvWaterRate = findViewById(R.id.tv_water_rate);
+        tvProteinRate = findViewById(R.id.tv_protein_rate);
+        tvBoneMass = findViewById(R.id.tv_bone_mass);
+        tvVisceralFat = findViewById(R.id.tv_visceral_fat);
+        tvBmr = findViewById(R.id.tv_bmr);
+        tvIdealWeight = findViewById(R.id.tv_ideal_weight);
+
+        btnSaveBodyFatData = findViewById(R.id.btn_save_body_fat_data);
+        btnDisconnect = findViewById(R.id.btn_disconnect);
+
+        // 设置按钮点击事件
+        btnSaveBodyFatData.setOnClickListener(this);
+        btnDisconnect.setOnClickListener(this);
 
         searchButton.setOnClickListener(this);
         filterButton.setOnClickListener(this);
@@ -284,23 +324,40 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         // 处理体脂计算结果
                         double bmi = intent.getDoubleExtra("BMI", 0);
                         double bodyFatRate = intent.getDoubleExtra("BODY_FAT_RATE", 0);
+                        double bodyFatMass = intent.getDoubleExtra("BODY_FAT_MASS", 0);
                         double waterRate = intent.getDoubleExtra("WATER_RATE", 0);
+                        double proteinRate = intent.getDoubleExtra("PROTEIN_RATE", 0);
+                        double muscleRate = intent.getDoubleExtra("MUSCLE_RATE", 0);
+                        double muscleMass = intent.getDoubleExtra("MUSCLE_MASS", 0);
+                        double boneMass = intent.getDoubleExtra("BONE_MASS", 0);
+                        int visceralFat = intent.getIntExtra("VISCERAL_FAT", 0);
                         int bmr = intent.getIntExtra("BMR", 0);
                         int bodyAge = intent.getIntExtra("BODY_AGE", 0);
-
-                        Log.d(TAG, "收到体脂计算结果: BMI=" + bmi +
-                                " 体脂率=" + bodyFatRate + "% " +
-                                " 水分率=" + waterRate + "% " +
-                                " 基础代谢=" + bmr + "kcal " +
-                                " 身体年龄=" + bodyAge);
+                        double idealWeight = intent.getDoubleExtra("IDEAL_WEIGHT", 0);
+                        float weight = intent.getFloatExtra("WEIGHT", 0);
 
                         // 更新UI
                         runOnUiThread(() -> {
-                            // 这里可以根据需要更新UI显示体脂数据
-                            // 现在我们只在Logcat中输出，后续可以扩展UI
+                            // 确保显示体脂数据UI
+                            showBodyFatDataUI();
 
-                            // 例如，我们可以暂时在脉搏字段显示体脂率
-                            tv_pulse.setText(String.format("体脂率: %.1f%%", bodyFatRate));
+                            // 更新UI组件显示体脂数据
+                            tvWeightValue.setText(String.format("%.1f", weight));
+                            tvBmiValue.setText(String.format("%.1f", bmi));
+                            tvBodyAgeValue.setText(String.valueOf(bodyAge));
+                            tvBodyFatRate.setText(String.format("%.1f%%", bodyFatRate));
+                            tvBodyFatMass.setText(String.format("%.1f kg", bodyFatMass));
+                            tvMuscleRate.setText(String.format("%.1f%%", muscleRate));
+                            tvMuscleMass.setText(String.format("%.1f kg", muscleMass));
+                            tvWaterRate.setText(String.format("%.1f%%", waterRate));
+                            tvProteinRate.setText(String.format("%.1f%%", proteinRate));
+                            tvBoneMass.setText(String.format("%.1f kg", boneMass));
+                            tvVisceralFat.setText(String.valueOf(visceralFat));
+                            tvBmr.setText(String.format("%d kcal", bmr));
+                            tvIdealWeight.setText(String.format("%.1f kg", idealWeight));
+
+                            // 启用保存按钮
+                            btnSaveBodyFatData.setEnabled(true);
                         });
                     }
                     break;
@@ -676,21 +733,31 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
-    public void showHealthDataUI() {
+    // 显示体脂数据UI
+    public void showBodyFatDataUI() {
         deviceSearchContainer.setVisibility(View.GONE);
-        healthDataContainer.setVisibility(View.VISIBLE);
+        healthDataContainer.setVisibility(View.GONE);
+        bodyFatDataContainer.setVisibility(View.VISIBLE);
     }
 
+    public void showHealthDataUI() {
+        // 根据设备类型显示不同UI
+        if (currentDeviceType == DeviceType.BLOOD_PRESSURE) {
+            deviceSearchContainer.setVisibility(View.GONE);
+            healthDataContainer.setVisibility(View.VISIBLE);
+            bodyFatDataContainer.setVisibility(View.GONE);
+        } else if (currentDeviceType == DeviceType.EIGHT_ELECTRODE_SCALE) {
+            showBodyFatDataUI();
+        }
+    }
+
+    // 修改现有的showDeviceSearchUI方法
     public void showDeviceSearchUI() {
         deviceSearchContainer.setVisibility(View.VISIBLE);
         healthDataContainer.setVisibility(View.GONE);
+        bodyFatDataContainer.setVisibility(View.GONE);
 
         // 重置数据和按钮状态
-        currentSystolic = 0;
-        currentDiastolic = 0;
-        currentPulse = 0;
-        if (btnSaveData != null) {
-            btnSaveData.setEnabled(false);
-        }
+        resetDisplayValues();
     }
 }

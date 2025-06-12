@@ -269,4 +269,8 @@ public class BodyFatCalculator {
         public double idealWeight;        // 理想体重(kg)
         public double skeletalMuscleMass; // 骨骼肌量(kg)
     }
+
+    public float getWeight() {
+        return this.weight;
+    }
 }
