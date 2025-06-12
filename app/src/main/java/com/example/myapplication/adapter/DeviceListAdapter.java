@@ -52,14 +52,19 @@ public class DeviceListAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
                 public void onClick(View v) {
                     int position = deviceListViewHolder.getAdapterPosition();
                     if (position!=RecyclerView.NO_POSITION) {
-                        // 检查设备名称是否为血压计
+                        // 检查设备名称
                         BluetoothDevice device = myBluetoothDeviceList.get(position);
                         String name = device.getName();
 
                         myItemClickListener.onItemClick(deviceListViewHolder.rlInfo, position);
 
-                        if (name!=null && name.equals("BM100B") && context instanceof MainActivity) {
-                            ((MainActivity) context).showHealthDataUI();
+                        if (context instanceof MainActivity) {
+                            if (name!=null && name.equals("BM100B")) {
+                                ((MainActivity) context).showHealthDataUI();
+                            }
+                            else if (name != null && name.contains("AiLink")) {
+                                ((MainActivity) context).showHealthDataUI();
+                            }
                         }
                     }
                 }
