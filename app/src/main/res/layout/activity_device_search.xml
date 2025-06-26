@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <!-- 眉头 -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/header_container"
+        android:layout_width="0dp"
+        android:layout_height="80dp"
+        android:background="#43A047"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <!-- 返回按钮 -->
+        <ImageButton
+            android:id="@+id/btn_back"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:src="@android:drawable/ic_menu_close_clear_cancel"
+            android:background="@android:color/transparent"
+            app:tint="@android:color/white"
+            android:layout_marginStart="16dp"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            android:paddingTop="10dp" />
+
+        <!-- 标题 -->
+        <TextView
+            android:id="@+id/header_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="搜索设备"
+            android:textColor="@android:color/white"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:paddingTop="10dp"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <!-- 搜索中的内容 -->
+    <LinearLayout
+        android:id="@+id/searching_container"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="32dp"
+        app:layout_constraintTop_toBottomOf="@id/header_container"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <!-- 设备信息卡片 -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="40dp"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="4dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:padding="20dp"
+                android:gravity="center_vertical">
+
+                <!-- 设备图标 -->
+                <ImageView
+                    android:layout_width="50dp"
+                    android:layout_height="50dp"
+                    android:src="@android:drawable/stat_sys_data_bluetooth"
+                    app:tint="#1976D2"
+                    android:layout_marginEnd="16dp" />
+
+                <!-- 设备名称 -->
+                <TextView
+                    android:id="@+id/tv_device_name"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="血压计"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="#333333" />
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- 搜索动画区域 -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:layout_marginBottom="40dp">
+
+            <!-- 搜索进度条 -->
+            <ProgressBar
+                android:id="@+id/progress_search"
+                android:layout_width="60dp"
+                android:layout_height="60dp"
+                android:indeterminateTint="#1976D2"
+                android:layout_marginBottom="20dp" />
+
+        </LinearLayout>
+
+        <!-- 搜索提示文字 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="正在搜索蓝牙设备..."
+            android:textSize="18sp"
+            android:textColor="#333333"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="请打开设备并确保设备处于可连接状态"
+            android:textSize="14sp"
+            android:textColor="#757575"
+            android:gravity="center"
+            android:layout_marginBottom="32dp" />
+
+        <!-- 取消按钮 -->
+        <Button
+            android:id="@+id/btn_cancel_search"
+            android:layout_width="200dp"
+            android:layout_height="48dp"
+            android:text="取消搜索"
+            android:textColor="#757575"
+            android:backgroundTint="#F5F5F5"
+            android:layout_marginTop="20dp" />
+
+    </LinearLayout>
+
+    <!-- 搜索成功的内容 -->
+    <LinearLayout
+        android:id="@+id/success_container"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="32dp"
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@id/header_container"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <!-- 成功图标 -->
+        <ImageView
+            android:layout_width="100dp"
+            android:layout_height="100dp"
+            android:src="@android:drawable/ic_dialog_info"
+            app:tint="#4CAF50"
+            android:layout_marginBottom="20dp" />
+
+        <!-- 成功提示 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="设备已添加成功！"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:textColor="#4CAF50"
+            android:layout_marginBottom="16dp" />
+
+        <TextView
+            android:id="@+id/tv_success_device_name"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="血压计"
+            android:textSize="16sp"
+            android:textColor="#333333"
+            android:layout_marginBottom="32dp" />
+
+        <!-- 完成按钮 -->
+        <Button
+            android:id="@+id/btn_finish"
+            android:layout_width="200dp"
+            android:layout_height="48dp"
+            android:text="完成"
+            android:textColor="@android:color/white"
+            android:backgroundTint="#4CAF50" />
+
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

@@ -58,6 +58,9 @@ public class DeviceListAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
 
                         myItemClickListener.onItemClick(deviceListViewHolder.rlInfo, position);
 
+                        // 暂时注释掉，因为MainActivity中已经没有showHealthDataUI方法了
+                        // TODO: 后续在设备搜索页面中会重新实现这个逻辑
+                        /*
                         if (context instanceof MainActivity) {
                             if (name!=null && name.equals("BM100B")) {
                                 ((MainActivity) context).showHealthDataUI();
@@ -66,6 +69,7 @@ public class DeviceListAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
                                 ((MainActivity) context).showHealthDataUI();
                             }
                         }
+                        */
                     }
                 }
             });
