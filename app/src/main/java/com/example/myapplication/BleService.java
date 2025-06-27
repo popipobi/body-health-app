@@ -193,7 +193,7 @@ public class BleService extends Service {
             BluetoothGattCharacteristic gattCharacteristic = gattService.getCharacteristic(CHARACTERISTIC_BLOOD_PRESSURE_MEASUREMENT);
             if (gattCharacteristic != null) {
                 BluetoothGattDescriptor descriptor = gattCharacteristic.getDescriptor(DESCRIPTOR_UUID);
-                // 🔥 添加空指针检查
+                // 添加空指针检查
                 if (descriptor != null) {
                     descriptor.setValue(BluetoothGattDescriptor.ENABLE_INDICATION_VALUE);
                     if (myBlueToothGatt.writeDescriptor(descriptor)) {
