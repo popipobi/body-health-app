@@ -50,5 +50,4 @@
     <img src="images/pic_05.jpeg" alt="Screenshot 4" height="300"/>
     <img src="images/pic_06.jpeg" alt="Screenshot 4" height="300"/>
     <img src="images/pic_07.jpg" alt="Screenshot 4" height="300"/>
-    <img src="images/pic_00.jpg" alt="Screenshot 1" height="300"/>
 </div>
