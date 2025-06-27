@@ -46,13 +46,6 @@ public class BleService extends Service {
     // 血压测量特征值(Notify,数据通过这个来发送)
     public final UUID CHARACTERISTIC_BLOOD_PRESSURE_MEASUREMENT = UUID.fromString("00002a35-0000-1000-8000-00805f9b34fb");
     // 描述标识
-
-    public static final UUID SERVICE_UUID_AILINK_1 = UUID.fromString("0000ffe0-0000-1000-8000-00805f9b34fb");
-    public static final UUID CHARACTERISTIC_UUID_AILINK_1 = UUID.fromString("0000ffe2-0000-1000-8000-00805f9b34fb");
-
-    public static final UUID SERVICE_UUID_AILINK_2 = UUID.fromString("0000fee0-0000-1000-8000-00805f9b34fb");
-    public static final UUID CHARACTERISTIC_UUID_AILINK_2 = UUID.fromString("0000fee2-0000-1000-8000-00805f9b34fb");
-
     private final UUID DESCRIPTOR_UUID = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb");
 
     // 服务相关
@@ -66,7 +59,6 @@ public class BleService extends Service {
 
     @Override
     public IBinder onBind(Intent intent) {
-        // TODO: Return the communication channel to the service.
         return myBinder;
     }
 
@@ -120,22 +112,6 @@ public class BleService extends Service {
 //            sendBleBroadCast(ACTION_DATA_AVAILABLE, characteristic);// 收到数据
             if (SERVICE_UUID.equals(characteristic.getService().getUuid()) &&
                     CHARACTERISTIC_BLOOD_PRESSURE_MEASUREMENT.equals(characteristic.getUuid())) {
-                sendBleBroadCast(ACTION_DATA_AVAILABLE, characteristic);
-            }
-
-            // AiLink_B657 第一个
-            if (SERVICE_UUID_AILINK_1.equals(characteristic.getService().getUuid()) &&
-                    CHARACTERISTIC_UUID_AILINK_1.equals(characteristic.getUuid())) {
-                byte[] data = characteristic.getValue();
-                Log.i(TAG, "接收到秤第一个Notify数据：" + ByteUtils.formatByteArray(data));
-                sendBleBroadCast(ACTION_DATA_AVAILABLE, characteristic);
-            }
-
-            // AiLink_B657 第二个
-            if (SERVICE_UUID_AILINK_2.equals(characteristic.getService().getUuid()) &&
-                    CHARACTERISTIC_UUID_AILINK_2.equals(characteristic.getUuid())) {
-                byte[] data = characteristic.getValue();
-                Log.i(TAG, "接收到秤第二个Notify数据：" + new String(data));
                 sendBleBroadCast(ACTION_DATA_AVAILABLE, characteristic);
             }
         }
@@ -217,29 +193,25 @@ public class BleService extends Service {
             BluetoothGattCharacteristic gattCharacteristic = gattService.getCharacteristic(CHARACTERISTIC_BLOOD_PRESSURE_MEASUREMENT);
             if (gattCharacteristic != null) {
                 BluetoothGattDescriptor descriptor = gattCharacteristic.getDescriptor(DESCRIPTOR_UUID);
-                descriptor.setValue(BluetoothGattDescriptor.ENABLE_INDICATION_VALUE);
-                if (myBlueToothGatt.writeDescriptor(descriptor)) {
+                // 🔥 添加空指针检查
+                if (descriptor != null) {
+                    descriptor.setValue(BluetoothGattDescriptor.ENABLE_INDICATION_VALUE);
+                    if (myBlueToothGatt.writeDescriptor(descriptor)) {
+                        myBlueToothGatt.setCharacteristicNotification(gattCharacteristic, true);
+                        Log.d("BleService", "血压计通知设置成功");
+                    } else {
+                        Log.e("BleService", "写入血压计描述符失败");
+                    }
+                } else {
+                    Log.e("BleService", "血压计描述符为null");
+                    // 如果descriptor为null，也要设置通知
                     myBlueToothGatt.setCharacteristicNotification(gattCharacteristic, true);
                 }
+            } else {
+                Log.e("BleService", "血压计特征为null");
             }
-        }
-
-        // 处理秤的服务1 notify
-        BluetoothGattService gattService1 = myBlueToothGatt.getService(SERVICE_UUID_AILINK_1);
-        if (gattService1 != null) {
-            BluetoothGattCharacteristic gattCharacteristic1 = gattService1.getCharacteristic(CHARACTERISTIC_UUID_AILINK_1);
-            if (gattCharacteristic1 != null) {
-                myBlueToothGatt.setCharacteristicNotification(gattCharacteristic1, true);
-            }
-        }
-
-        // 处理秤的服务2 notify
-        BluetoothGattService gattService2 = myBlueToothGatt.getService(SERVICE_UUID_AILINK_2);
-        if (gattService2 != null) {
-            BluetoothGattCharacteristic gattCharacteristic2 = gattService2.getCharacteristic(CHARACTERISTIC_UUID_AILINK_2);
-            if (gattCharacteristic2 != null) {
-                myBlueToothGatt.setCharacteristicNotification(gattCharacteristic2, true);
-            }
+        } else {
+            Log.e("BleService", "血压计服务为null");
         }
     }
 }

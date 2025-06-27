@@ -24,6 +24,7 @@ import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.myapplication.BlePermissionCheck;
 import com.example.myapplication.BottomNavigationHelper;
 import com.example.myapplication.R;
 import com.example.myapplication.util.SwipeToDeleteCallback;
@@ -60,12 +61,44 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             return;
         }
 
+        checkAndRequestPermissions();
+
         initData();
         initViews();
         setupClickListeners();
         setupBottomNavigation();
         setupActivityResultLauncher();
         updateUI();
+    }
+
+    private void checkAndRequestPermissions() {
+        if (!BlePermissionCheck.hasPerMissions(this)) {
+            Log.d(TAG, "缺少蓝牙权限，开始申请");
+
+            if (BlePermissionCheck.shouldShowRationale(this)) {
+                // 显示权限说明
+                BlePermissionCheck.showRationale(this);
+            }
+
+            // 申请权限
+            BlePermissionCheck.requestPermissions(this);
+        } else {
+            Log.d(TAG, "已有所需的蓝牙权限");
+        }
+    }
+
+    // 添加权限申请结果处理
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        if (BlePermissionCheck.handlePermisssionsResult(requestCode, permissions, grantResults)) {
+            Log.d(TAG, "蓝牙权限申请成功");
+            Toast.makeText(this, "权限申请成功，现在可以使用蓝牙功能", Toast.LENGTH_SHORT).show();
+        } else {
+            Log.d(TAG, "蓝牙权限申请失败");
+            Toast.makeText(this, "需要蓝牙权限才能使用设备连接功能", Toast.LENGTH_LONG).show();
+        }
     }
 
     private void initData() {

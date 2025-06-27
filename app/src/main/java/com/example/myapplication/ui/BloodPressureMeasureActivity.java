@@ -59,14 +59,13 @@ public class BloodPressureMeasureActivity extends AppCompatActivity implements V
     private BloodPressureChart chartHelper;
 
     // 蓝牙相关
-    private BluetoothManager bluetoothManager;
-    private BluetoothAdapter bluetoothAdapter;
+    private BluetoothManager myBluetoothManager;
+    private BluetoothAdapter myBluetoothAdapter;
     private BluetoothLeScanner bluetoothLeScanner;
     private ActivityResultLauncher<Intent> enableBluetoothLauncher;
-    private BleService bleService;
-    private BleReceiver bleReceiver;
+    private BleService myBleService;
+    private BleReceiver myBleReceiver;
     private boolean isScanning = false;
-    private boolean isConnected = false;
 
     // 数据相关
     private String deviceName;
@@ -92,8 +91,10 @@ public class BloodPressureMeasureActivity extends AppCompatActivity implements V
                 BlePermissionCheck.showRationale(this);
             }
             BlePermissionCheck.requestPermissions(this);
+            return;
         } else {
-            initBluetooth();
+            initBle();
+            registerBleReceiver();
         }
     }
 
@@ -132,15 +133,14 @@ public class BloodPressureMeasureActivity extends AppCompatActivity implements V
         measurementDAO = new MeasurementDAO(this);
     }
 
-    private void initBluetooth() {
-        bluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
-        if (bluetoothManager == null) {
-            Toast.makeText(this, "设备不支持蓝牙", Toast.LENGTH_LONG).show();
+    private void initBle() {// 初始化蓝牙 - 完全按照旧版本MainActivity的逻辑
+        myBluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
+        if (myBluetoothManager == null) {
+            Toast.makeText(this, "蓝牙用不了", Toast.LENGTH_LONG).show();
             return;
         }
-
-        bluetoothAdapter = bluetoothManager.getAdapter();
-        if (bluetoothAdapter == null) {
+        myBluetoothAdapter = myBluetoothManager.getAdapter();
+        if (myBluetoothAdapter == null) {
             Toast.makeText(this, "设备不支持蓝牙", Toast.LENGTH_LONG).show();
             return;
         }
@@ -150,27 +150,102 @@ public class BloodPressureMeasureActivity extends AppCompatActivity implements V
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
                     if (result.getResultCode() == Activity.RESULT_OK) {
-                        startBluetoothService();
-                        startAutoScan();
+                        scanBleDevice();
                     } else {
-                        Toast.makeText(this, "蓝牙未启用", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(this, "蓝牙未启用，没法扫描", Toast.LENGTH_SHORT).show();
                     }
                 }
         );
 
-        if (!bluetoothAdapter.isEnabled()) {
+        if (!myBluetoothAdapter.isEnabled()) {
             Intent intent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             enableBluetoothLauncher.launch(intent);
-        } else {
-            startBluetoothService();
-            startAutoScan();
+            return;
         }
+        scanBleDevice();
+        Toast.makeText(this, "蓝牙已启动", Toast.LENGTH_SHORT).show();
     }
 
-    private void startBluetoothService() {
+    // 添加Handler变量
+    private Handler scanTimeoutHandler = new Handler();
+    private Runnable scanTimeoutRunnable;
+
+    private void scanBleDevice() {// 搜索蓝牙设备 - 完全按照旧版本MainActivity的逻辑
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN)
+                != PackageManager.PERMISSION_GRANTED) {
+            Toast.makeText(this, "Ble权限未授予", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        bluetoothLeScanner = myBluetoothAdapter.getBluetoothLeScanner();
+        if (bluetoothLeScanner == null) {
+            Toast.makeText(this, "无法获取BLE扫描器", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (isScanning) return;
+        isScanning = true;
+
+        Toast.makeText(this, "正在搜索" + deviceName + "...", Toast.LENGTH_SHORT).show();
+        updateConnectionStatus(false, "正在搜索...");
+
+        bluetoothLeScanner.startScan(myScanCallback);
+
+        // 创建超时任务
+        scanTimeoutRunnable = new Runnable() {// 搜索10s，找不着拉倒
+            @Override
+            public void run() {
+                if (ActivityCompat.checkSelfPermission(BloodPressureMeasureActivity.this, Manifest.permission.BLUETOOTH_SCAN)
+                        != PackageManager.PERMISSION_GRANTED) {
+                    return;
+                }
+                bluetoothLeScanner.stopScan(myScanCallback);
+                isScanning = false;
+                updateConnectionStatus(false, "未找到设备");
+                Toast.makeText(BloodPressureMeasureActivity.this, "未找到" + deviceName + "，请确保设备已开启", Toast.LENGTH_LONG).show();
+            }
+        };
+        scanTimeoutHandler.postDelayed(scanTimeoutRunnable, 10000);
+    }
+
+    private final ScanCallback myScanCallback = new ScanCallback() {
+        @Override
+        public void onScanResult(int callbackType, ScanResult result) {
+            BluetoothDevice device = result.getDevice();
+            if (ActivityCompat.checkSelfPermission(BloodPressureMeasureActivity.this, Manifest.permission.BLUETOOTH_SCAN)
+                    != PackageManager.PERMISSION_GRANTED) {
+                return;
+            }
+            String deviceName = device.getName();
+
+            // 只连接血压计
+            if (deviceName != null && deviceName.equals("BM100B")) {
+                // 🔥 找到目标设备，立即取消超时Handler
+                if (scanTimeoutHandler != null && scanTimeoutRunnable != null) {
+                    scanTimeoutHandler.removeCallbacks(scanTimeoutRunnable);
+                }
+
+                // 停止扫描
+                bluetoothLeScanner.stopScan(myScanCallback);
+                isScanning = false;
+
+                updateConnectionStatus(false, "正在连接...");
+                Toast.makeText(BloodPressureMeasureActivity.this, "找到" + deviceName + "，正在连接...", Toast.LENGTH_SHORT).show();
+
+                // 连接血压计
+                myBleService.connect(myBluetoothAdapter, device.getAddress());
+            }
+        }
+
+        @Override
+        public void onScanFailed(int errorCode) {
+            Toast.makeText(BloodPressureMeasureActivity.this, "扫描失败" + errorCode, Toast.LENGTH_SHORT).show();
+        }
+    };
+
+    private void registerBleReceiver() {// 注册蓝牙数据接收器 - 完全按照旧版本MainActivity的逻辑
         // 绑定服务
         Intent intent = new Intent(this, BleService.class);
-        bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
+        bindService(intent, myServiceConnection, Context.BIND_AUTO_CREATE);
         startService(intent);
 
         // 注册蓝牙信息广播接收器
@@ -180,85 +255,25 @@ public class BloodPressureMeasureActivity extends AppCompatActivity implements V
         filter.addAction(BleService.ACTION_GATT_SERVICES_DISCOVERD);
         filter.addAction(BleService.ACTION_DATA_AVAILABLE);
         filter.addAction(BleService.ACTION_CONNECTING_FAIL);
-        bleReceiver = new BleReceiver();
-
+        myBleReceiver = new BleReceiver();
+        // >= API 26
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            registerReceiver(bleReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
+            registerReceiver(myBleReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
         }
     }
 
-    private void startAutoScan() {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN)
-                != PackageManager.PERMISSION_GRANTED) {
-            return;
-        }
-
-        bluetoothLeScanner = bluetoothAdapter.getBluetoothLeScanner();
-        if (bluetoothLeScanner == null) {
-            return;
-        }
-
-        if (isScanning) return;
-        isScanning = true;
-
-        Toast.makeText(this, "正在搜索" + deviceName + "...", Toast.LENGTH_SHORT).show();
-        updateConnectionStatus(false, "正在搜索...");
-
-        bluetoothLeScanner.startScan(scanCallback);
-
-        // 10秒后停止扫描
-        new Handler().postDelayed(() -> {
-            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN)
-                    != PackageManager.PERMISSION_GRANTED) {
-                return;
-            }
-            bluetoothLeScanner.stopScan(scanCallback);
-            isScanning = false;
-
-            if (!isConnected) {
-                updateConnectionStatus(false, "未找到设备");
-                Toast.makeText(this, "未找到" + deviceName + "，请确保设备已开启", Toast.LENGTH_LONG).show();
-            }
-        }, 10000);
-    }
-
-    private final ScanCallback scanCallback = new ScanCallback() {
-        @Override
-        public void onScanResult(int callbackType, ScanResult result) {
-            BluetoothDevice device = result.getDevice();
-            if (ActivityCompat.checkSelfPermission(BloodPressureMeasureActivity.this,
-                    Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-                return;
-            }
-
-            String deviceName = device.getName();
-            if (deviceName != null && deviceName.equals("BM100B")) {
-                // 找到目标设备，停止扫描并连接
-                bluetoothLeScanner.stopScan(scanCallback);
-                isScanning = false;
-
-                updateConnectionStatus(false, "正在连接...");
-                Toast.makeText(BloodPressureMeasureActivity.this, "找到" + deviceName + "，正在连接...", Toast.LENGTH_SHORT).show();
-
-                if (bleService != null) {
-                    bleService.connect(bluetoothAdapter, device.getAddress());
-                }
-            }
-        }
-    };
-
-    // 服务连接
-    private final ServiceConnection serviceConnection = new ServiceConnection() {
+    // 服务 - 完全按照旧版本MainActivity的逻辑
+    private ServiceConnection myServiceConnection = new ServiceConnection() {
         public void onServiceConnected(ComponentName classname, IBinder rawBinder) {
-            bleService = ((BleService.LocalBinder) rawBinder).getService();
+            myBleService = ((BleService.LocalBinder) rawBinder).getService();
         }
 
         public void onServiceDisconnected(ComponentName classname) {
-            bleService = null;
+            myBleService = null;
         }
     };
 
-    // 蓝牙数据接收器
+    // 蓝牙数据接收器 - 完全按照旧版本MainActivity的逻辑
     private class BleReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -267,74 +282,64 @@ public class BloodPressureMeasureActivity extends AppCompatActivity implements V
 
             switch (action) {
                 case BleService.ACTION_GATT_CONNECTED:
-                    isConnected = true;
                     runOnUiThread(() -> {
                         updateConnectionStatus(true);
-                        Toast.makeText(BloodPressureMeasureActivity.this, deviceName + "已连接", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(BloodPressureMeasureActivity.this, "血压计已连接", Toast.LENGTH_SHORT).show();
                     });
                     break;
-
                 case BleService.ACTION_GATT_DISCONNECTED:
-                    isConnected = false;
                     runOnUiThread(() -> {
                         updateConnectionStatus(false, "连接已断开");
-                        Toast.makeText(BloodPressureMeasureActivity.this, deviceName + "已断开", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(BloodPressureMeasureActivity.this, "血压计已断开", Toast.LENGTH_SHORT).show();
                     });
-                    if (bleService != null) {
-                        bleService.release();
-                    }
+                    myBleService.release();
                     break;
-
                 case BleService.ACTION_GATT_SERVICES_DISCOVERD:
                     Toast.makeText(BloodPressureMeasureActivity.this, "发现服务", Toast.LENGTH_SHORT).show();
-                    if (bleService != null) {
-                        bleService.setBleNotification();
-                    }
+                    myBleService.setBleNotification();
                     break;
-
                 case BleService.ACTION_CONNECTING_FAIL:
-                    isConnected = false;
                     runOnUiThread(() -> {
                         updateConnectionStatus(false, "连接失败");
-                        Toast.makeText(BloodPressureMeasureActivity.this, deviceName + "连接失败", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(BloodPressureMeasureActivity.this, "血压计连接失败", Toast.LENGTH_SHORT).show();
                     });
-                    if (bleService != null) {
-                        bleService.disconnect();
-                    }
+                    myBleService.disconnect();
                     break;
-
                 case BleService.ACTION_DATA_AVAILABLE:
-                    // 处理数据
+                    // 处理数据 - 完全按照旧版本MainActivity的逻辑
                     byte[] data = intent.getByteArrayExtra(BleService.EXTRA_DATA);
                     if (data != null && data.length > 0) {
                         String ans = ByteUtils.formatByteArray(data);
                         int i = compute(ans);
 
                         runOnUiThread(() -> {
-                            currentXueya.setText(String.valueOf(i));
-                            chartHelper.updateChartData(i);
+                            currentXueya.setText(String.valueOf(i));// 更新TextView
+                            chartHelper.updateChartData(i);// 更新图表
                         });
 
-                        // 处理完整的血压数据
+                        // 最后满足特定格式才会出现大长串串
                         if (data.length >= 17) {
                             ByteUtils.HealthData bloodPressureData = ByteUtils.parseHealthData(data);
 
+                            // 存储当前读取的值
                             currentSystolic = bloodPressureData.getSystolic();
                             currentDiastolic = bloodPressureData.getDiastolic();
                             currentPulse = bloodPressureData.getPulse();
 
                             runOnUiThread(() -> {
-                                tvSystolic.setText(currentSystolic + " mmHg");
-                                tvDiastolic.setText(currentDiastolic + " mmHg");
-                                tvPulse.setText(currentPulse + " bpm");
+                                tvSystolic.setText(bloodPressureData.getSystolic() + " mmHg");
+                                tvDiastolic.setText(bloodPressureData.getDiastolic() + " mmHg");
+                                tvPulse.setText(bloodPressureData.getPulse() + " bpm");
 
-                                // 当收缩压有值时，启用保存按钮并变为绿色
+                                btnSaveData.setEnabled(currentSystolic > 0 && currentDiastolic > 0 && currentPulse > 0);
                                 if (currentSystolic > 0) {
                                     enableSaveButton();
                                 }
                             });
                         }
                     }
+                    break;
+                default:
                     break;
             }
         }
@@ -409,8 +414,8 @@ public class BloodPressureMeasureActivity extends AppCompatActivity implements V
     }
 
     private void disconnectDevice() {
-        if (bleService != null) {
-            bleService.disconnect();
+        if (myBleService != null) {
+            myBleService.disconnect();
         }
         updateConnectionStatus(false, "已断开连接");
     }
@@ -420,7 +425,8 @@ public class BloodPressureMeasureActivity extends AppCompatActivity implements V
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 
         if (BlePermissionCheck.handlePermisssionsResult(requestCode, permissions, grantResults)) {
-            initBluetooth();
+            initBle();
+            registerBleReceiver();
         } else {
             Toast.makeText(this, "未授予权限，无法使用蓝牙功能", Toast.LENGTH_LONG).show();
         }
@@ -429,13 +435,17 @@ public class BloodPressureMeasureActivity extends AppCompatActivity implements V
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        if (bleReceiver != null) {
-            unregisterReceiver(bleReceiver);
-            bleReceiver = null;
+
+        // 🔥 清理扫描超时Handler
+        if (scanTimeoutHandler != null && scanTimeoutRunnable != null) {
+            scanTimeoutHandler.removeCallbacks(scanTimeoutRunnable);
         }
-        if (bleService != null) {
-            unbindService(serviceConnection);
-            bleService = null;
+
+        if (myBleReceiver != null) {
+            unregisterReceiver(myBleReceiver);
+            myBleReceiver = null;
         }
+        unbindService(myServiceConnection);
+        myBleService = null;
     }
 }

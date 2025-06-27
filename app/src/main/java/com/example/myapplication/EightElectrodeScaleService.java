@@ -22,7 +22,7 @@ import java.util.List;
 import cn.net.aicare.modulelibrary.module.EightBodyfatscale.EightBodyFatBleDeviceData;
 
 public class EightElectrodeScaleService extends Service {
-    private static final String TAG = "EightElectrodeService";
+    private static final String TAG = "aoaoaoService";
 
     // 常量
     public static final String ACTION_DEVICE_CONNECTED = "com.example.myapplication.ACTION_DEVICE_CONNECTED";

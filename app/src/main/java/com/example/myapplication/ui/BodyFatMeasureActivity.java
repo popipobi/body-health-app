@@ -1,5 +1,12 @@
 package com.example.myapplication.ui;
 
+import android.Manifest;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothManager;
+import android.bluetooth.le.BluetoothLeScanner;
+import android.bluetooth.le.ScanCallback;
+import android.bluetooth.le.ScanResult;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
@@ -7,6 +14,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -21,13 +29,14 @@ import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
 
 import com.example.myapplication.EightElectrodeScaleService;
 import com.example.myapplication.R;
 import com.example.myapplication.database.dao.BodyFatMeasurementDAO;
 
 public class BodyFatMeasureActivity extends AppCompatActivity implements View.OnClickListener {
-    private static final String TAG = "BodyFatMeasure";
+    private static final String TAG = "aoaoao";
 
     // UI组件
     private ImageButton btnBack;
@@ -69,6 +78,7 @@ public class BodyFatMeasureActivity extends AppCompatActivity implements View.On
         initViews();
         setupClickListeners();
         initDatabase();
+        initBluetoothForBackup();
         bindEightElectrodeService();
 
         // 初始化搜索超时处理器
@@ -176,32 +186,137 @@ public class BodyFatMeasureActivity extends AppCompatActivity implements View.On
     };
 
     private void startAutoScanAndConnect() {
+        Log.d(TAG, "开始自动扫描和连接流程");
+
         if (eightElectrodeScaleService != null) {
             Toast.makeText(this, "正在搜索" + deviceName + "...", Toast.LENGTH_SHORT).show();
             updateConnectionStatus(false, "正在搜索...");
 
-            // 使用AILink SDK开始扫描八电极体脂秤
-            eightElectrodeScaleService.startScan(15000); // 15秒超时
-            Log.d(TAG, "开始使用AILink SDK扫描八电极体脂秤");
+            // 方法1：使用AILink SDK扫描
+            Log.d(TAG, "方法1：开始使用AILink SDK扫描");
+            eightElectrodeScaleService.startScan(15000);
 
-            // 设置额外的超时检查（20秒）
+            // 方法2：同时使用标准BLE扫描作为备份
+            Log.d(TAG, "方法2：开始使用标准BLE扫描作为备份");
+            startStandardBleScan();
+
+            // 设置超时检查（20秒）
             searchTimeoutHandler.postDelayed(() -> {
                 if (!isConnected) {
                     Log.w(TAG, "搜索超时，未找到八电极体脂秤");
+                    stopAllScans();
                     runOnUiThread(() -> {
                         updateConnectionStatus(false, "未找到设备");
                         Toast.makeText(this, "未找到" + deviceName + "，请确保设备已开启", Toast.LENGTH_LONG).show();
                     });
-                    // 停止扫描
-                    if (eightElectrodeScaleService != null) {
-                        eightElectrodeScaleService.stopScan();
-                    }
                 }
             }, 20000);
 
         } else {
             Log.e(TAG, "EightElectrodeScaleService未绑定，无法开始扫描");
             updateConnectionStatus(false, "服务未就绪");
+        }
+    }
+
+    private BluetoothManager bluetoothManager;
+    private BluetoothAdapter bluetoothAdapter;
+    private BluetoothLeScanner bluetoothLeScanner;
+    private boolean isStandardScanning = false;
+
+    private void initBluetoothForBackup() {
+        bluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
+        if (bluetoothManager != null) {
+            bluetoothAdapter = bluetoothManager.getAdapter();
+            if (bluetoothAdapter != null && bluetoothAdapter.isEnabled()) {
+                bluetoothLeScanner = bluetoothAdapter.getBluetoothLeScanner();
+            }
+        }
+    }
+
+    private void startStandardBleScan() {
+        if (bluetoothLeScanner == null) {
+            initBluetoothForBackup();
+        }
+
+        if (bluetoothLeScanner == null) {
+            Log.e(TAG, "标准BLE扫描器无法初始化");
+            return;
+        }
+
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN)
+                != PackageManager.PERMISSION_GRANTED) {
+            Log.e(TAG, "缺少蓝牙扫描权限");
+            return;
+        }
+
+        if (isStandardScanning) return;
+        isStandardScanning = true;
+
+        Log.d(TAG, "开始标准BLE扫描");
+        bluetoothLeScanner.startScan(standardScanCallback);
+    }
+
+    private final ScanCallback standardScanCallback = new ScanCallback() {
+        @Override
+        public void onScanResult(int callbackType, ScanResult result) {
+            BluetoothDevice device = result.getDevice();
+            if (ActivityCompat.checkSelfPermission(BodyFatMeasureActivity.this,
+                    Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                return;
+            }
+
+            String deviceName = device.getName();
+            String deviceAddress = device.getAddress();
+
+            // 检查是否是目标体脂秤设备
+            if (deviceName != null && deviceName.contains("AiLink")) {
+                Log.d(TAG, "标准BLE扫描找到目标设备，尝试通过EightElectrodeScaleService连接: " + deviceName);
+
+                // 停止所有扫描
+                stopAllScans();
+
+                // 更新状态
+                runOnUiThread(() -> {
+                    updateConnectionStatus(false, "正在连接...");
+                    Toast.makeText(BodyFatMeasureActivity.this, "找到" + deviceName + "，正在连接...", Toast.LENGTH_SHORT).show();
+                });
+
+                // 通过EightElectrodeScaleService连接
+                if (eightElectrodeScaleService != null) {
+                    Log.d(TAG, "调用EightElectrodeScaleService.connect(): " + deviceAddress);
+                    eightElectrodeScaleService.connect(deviceAddress);
+                } else {
+                    Log.e(TAG, "EightElectrodeScaleService为null，无法连接");
+                }
+            }
+        }
+
+        @Override
+        public void onScanFailed(int errorCode) {
+            Log.e(TAG, "标准BLE扫描失败，错误码: " + errorCode);
+        }
+    };
+
+    private void stopAllScans() {
+        // 停止AILink SDK扫描
+        if (eightElectrodeScaleService != null) {
+            eightElectrodeScaleService.stopScan();
+            Log.d(TAG, "停止AILink SDK扫描");
+        }
+
+        // 停止标准BLE扫描
+        if (isStandardScanning && bluetoothLeScanner != null) {
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN)
+                    == PackageManager.PERMISSION_GRANTED) {
+                bluetoothLeScanner.stopScan(standardScanCallback);
+                isStandardScanning = false;
+                Log.d(TAG, "停止标准BLE扫描");
+            }
+        }
+
+        // 清除超时处理器
+        if (searchTimeoutHandler != null) {
+            searchTimeoutHandler.removeCallbacksAndMessages(null);
         }
     }
 
@@ -415,6 +530,8 @@ public class BodyFatMeasureActivity extends AppCompatActivity implements View.On
             searchTimeoutHandler.removeCallbacksAndMessages(null);
         }
 
+        stopAllScans();
+
         // 解绑八电极体脂秤服务
         if (boundToEightElectrodeService) {
             if (eightElectrodeReceiver != null) {
@@ -425,5 +542,17 @@ public class BodyFatMeasureActivity extends AppCompatActivity implements View.On
             eightElectrodeScaleService = null;
             boundToEightElectrodeService = false;
         }
+
+        // 清理蓝牙相关资源
+        if (bluetoothLeScanner != null) {
+            bluetoothLeScanner = null;
+            Log.d(TAG, "已清理蓝牙扫描器引用");
+        }
+
+        if (bluetoothAdapter != null) {
+            bluetoothAdapter = null;
+            Log.d(TAG, "已清理蓝牙适配器引用");
+        }
+
     }
 }
