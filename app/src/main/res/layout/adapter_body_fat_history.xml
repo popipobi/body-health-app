@@ -6,7 +6,10 @@
     android:layout_height="wrap_content"
     android:layout_marginBottom="8dp"
     app:cardCornerRadius="8dp"
-    app:cardElevation="2dp">
+    app:cardElevation="2dp"
+    android:clickable="true"
+    android:focusable="true"
+    android:foreground="?android:attr/selectableItemBackground">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -14,15 +17,48 @@
         android:orientation="vertical"
         android:padding="16dp">
 
-        <!-- 测量日期 -->
-        <TextView
-            android:id="@+id/tv_body_fat_date"
+        <!-- 测量日期和详情提示 -->
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="2025年04月21日 15:30"
-            android:textSize="16sp"
-            android:textColor="#757575"
-            android:layout_marginBottom="8dp" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="8dp">
+
+            <TextView
+                android:id="@+id/tv_body_fat_date"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="2025年04月21日 15:30"
+                android:textSize="16sp"
+                android:textColor="#757575" />
+
+            <!-- 详情提示区域 -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="详情"
+                    android:textSize="14sp"
+                    android:textColor="#9E9E9E"
+                    android:layout_marginEnd="4dp" />
+
+                <!-- 灰色箭头 -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=">"
+                    android:textSize="16sp"
+                    android:textColor="#9E9E9E"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </LinearLayout>
 
         <!-- 测量数据 -->
         <LinearLayout
