@@ -141,8 +141,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
                             // 更新UI
                             updateUI();
-
-                            Toast.makeText(this, deviceName + " 添加成功！", Toast.LENGTH_SHORT).show();
                         }
                     }
                 });

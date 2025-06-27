@@ -170,7 +170,7 @@ public class BloodPressureMeasureActivity extends AppCompatActivity implements V
     private Handler scanTimeoutHandler = new Handler();
     private Runnable scanTimeoutRunnable;
 
-    private void scanBleDevice() {// 搜索蓝牙设备 - 完全按照旧版本MainActivity的逻辑
+    private void scanBleDevice() {// 搜索蓝牙设备
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN)
                 != PackageManager.PERMISSION_GRANTED) {
             Toast.makeText(this, "Ble权限未授予", Toast.LENGTH_SHORT).show();
@@ -284,24 +284,24 @@ public class BloodPressureMeasureActivity extends AppCompatActivity implements V
                 case BleService.ACTION_GATT_CONNECTED:
                     runOnUiThread(() -> {
                         updateConnectionStatus(true);
-                        Toast.makeText(BloodPressureMeasureActivity.this, "血压计已连接", Toast.LENGTH_SHORT).show();
+//                        Toast.makeText(BloodPressureMeasureActivity.this, "血压计已连接", Toast.LENGTH_SHORT).show();
                     });
                     break;
                 case BleService.ACTION_GATT_DISCONNECTED:
                     runOnUiThread(() -> {
                         updateConnectionStatus(false, "连接已断开");
-                        Toast.makeText(BloodPressureMeasureActivity.this, "血压计已断开", Toast.LENGTH_SHORT).show();
+//                        Toast.makeText(BloodPressureMeasureActivity.this, "血压计已断开", Toast.LENGTH_SHORT).show();
                     });
                     myBleService.release();
                     break;
                 case BleService.ACTION_GATT_SERVICES_DISCOVERD:
-                    Toast.makeText(BloodPressureMeasureActivity.this, "发现服务", Toast.LENGTH_SHORT).show();
+//                    Toast.makeText(BloodPressureMeasureActivity.this, "发现服务", Toast.LENGTH_SHORT).show();
                     myBleService.setBleNotification();
                     break;
                 case BleService.ACTION_CONNECTING_FAIL:
                     runOnUiThread(() -> {
                         updateConnectionStatus(false, "连接失败");
-                        Toast.makeText(BloodPressureMeasureActivity.this, "血压计连接失败", Toast.LENGTH_SHORT).show();
+//                        Toast.makeText(BloodPressureMeasureActivity.this, "血压计连接失败", Toast.LENGTH_SHORT).show();
                     });
                     myBleService.disconnect();
                     break;

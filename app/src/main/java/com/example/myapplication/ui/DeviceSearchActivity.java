@@ -7,18 +7,17 @@ import android.bluetooth.BluetoothManager;
 import android.bluetooth.le.BluetoothLeScanner;
 import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanResult;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
 import android.view.View;
-import android.view.animation.Animation;
-import android.view.animation.RotateAnimation;
 import android.widget.Button;
 import android.widget.ImageButton;
-import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -54,6 +53,11 @@ public class DeviceSearchActivity extends AppCompatActivity implements View.OnCl
     private BluetoothAdapter bluetoothAdapter;
     private BluetoothLeScanner bluetoothLeScanner;
     private boolean isScanning = false;
+
+    // 配对相关
+    private BluetoothDevice targetDevice;
+    private boolean isPairing = false;
+    private PairingReceiver pairingReceiver;
 
     // 数据
     private String deviceType;
@@ -141,7 +145,19 @@ public class DeviceSearchActivity extends AppCompatActivity implements View.OnCl
             return;
         }
 
+        // 注册配对状态接收器
+        registerPairingReceiver();
+
         startRealBluetoothSearch();
+    }
+
+    private void registerPairingReceiver() {
+        pairingReceiver = new PairingReceiver();
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
+        filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
+        registerReceiver(pairingReceiver, filter);
+        Log.d(TAG, "已注册配对状态接收器");
     }
 
     private void startRealBluetoothSearch() {
@@ -192,10 +208,19 @@ public class DeviceSearchActivity extends AppCompatActivity implements View.OnCl
                 // 停止扫描
                 stopBluetoothSearch();
 
-                // 显示成功
-                runOnUiThread(() -> {
-                    showSearchSuccess();
-                });
+                // 保存目标设备
+                targetDevice = device;
+
+                // 根据设备类型处理
+                if (DEVICE_TYPE_BLOOD_PRESSURE.equals(deviceType)) {
+                    // 血压计需要配对
+                    startBloodPressurePairing();
+                } else {
+                    // 体脂秤不需要配对，直接成功
+                    runOnUiThread(() -> {
+                        showSearchSuccess();
+                    });
+                }
             }
         }
 
@@ -207,6 +232,106 @@ public class DeviceSearchActivity extends AppCompatActivity implements View.OnCl
             });
         }
     };
+
+    private void startBloodPressurePairing() {
+        if (targetDevice == null) {
+            Log.e(TAG, "目标设备为空，无法配对");
+            return;
+        }
+
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT)
+                != PackageManager.PERMISSION_GRANTED) {
+            Toast.makeText(this, "缺少蓝牙连接权限", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // 检查是否已经配对
+        if (targetDevice.getBondState() == BluetoothDevice.BOND_BONDED) {
+            runOnUiThread(() -> {
+                showSearchSuccess();
+            });
+            return;
+        }
+
+        // 开始配对
+        isPairing = true;
+        Log.d(TAG, "开始配对血压计: " + targetDevice.getAddress());
+
+        boolean pairResult = targetDevice.createBond();
+        Log.d(TAG, "配对请求结果: " + pairResult);
+
+        if (!pairResult) {
+            Log.e(TAG, "配对请求失败");
+            runOnUiThread(() -> {
+                Toast.makeText(this, "配对请求失败", Toast.LENGTH_SHORT).show();
+                // 配对失败，直接返回
+                finish();
+            });
+        }
+
+        // 设置配对超时（30秒）
+        handler.postDelayed(() -> {
+            if (isPairing) {
+                Log.w(TAG, "配对超时");
+                isPairing = false;
+                runOnUiThread(() -> {
+                    Toast.makeText(this, "配对超时，请重试", Toast.LENGTH_LONG).show();
+                    finish();
+                });
+            }
+        }, 30000);
+    }
+
+    // 配对状态接收器
+    private class PairingReceiver extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            Log.d(TAG, "收到配对广播: " + action);
+
+            if (BluetoothDevice.ACTION_BOND_STATE_CHANGED.equals(action)) {
+                BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                if (device != null && device.equals(targetDevice)) {
+                    int bondState = intent.getIntExtra(BluetoothDevice.EXTRA_BOND_STATE, BluetoothDevice.BOND_NONE);
+                    int previousBondState = intent.getIntExtra(BluetoothDevice.EXTRA_PREVIOUS_BOND_STATE, BluetoothDevice.BOND_NONE);
+
+                    Log.d(TAG, "配对状态变化: " + previousBondState + " -> " + bondState);
+
+                    switch (bondState) {
+                        case BluetoothDevice.BOND_BONDING:
+                            Log.d(TAG, "正在配对...");
+                            runOnUiThread(() -> {
+                                Toast.makeText(DeviceSearchActivity.this, "正在配对...", Toast.LENGTH_SHORT).show();
+                            });
+                            break;
+
+                        case BluetoothDevice.BOND_BONDED:
+                            Log.d(TAG, "配对成功！");
+                            isPairing = false;
+                            handler.removeCallbacksAndMessages(null); // 清除超时回调
+                            runOnUiThread(() -> {
+                                Toast.makeText(DeviceSearchActivity.this, "配对成功！", Toast.LENGTH_SHORT).show();
+                                showSearchSuccess();
+                            });
+                            break;
+
+                        case BluetoothDevice.BOND_NONE:
+                            Log.d(TAG, "配对失败或取消");
+                            if (previousBondState == BluetoothDevice.BOND_BONDING) {
+                                // 从配对中变为未配对，说明配对失败
+                                isPairing = false;
+                                handler.removeCallbacksAndMessages(null);
+                                runOnUiThread(() -> {
+                                    Toast.makeText(DeviceSearchActivity.this, "配对失败，请重试", Toast.LENGTH_LONG).show();
+                                    finish();
+                                });
+                            }
+                            break;
+                    }
+                }
+            }
+        }
+    }
 
     private boolean isTargetDevice(String foundDeviceName) {
         if (foundDeviceName == null || targetDeviceName.isEmpty()) {
@@ -293,5 +418,21 @@ public class DeviceSearchActivity extends AppCompatActivity implements View.OnCl
     protected void onDestroy() {
         super.onDestroy();
         stopBluetoothSearch();
+
+        // 注销配对状态接收器
+        if (pairingReceiver != null) {
+            try {
+                unregisterReceiver(pairingReceiver);
+                pairingReceiver = null;
+                Log.d(TAG, "已注销配对状态接收器");
+            } catch (Exception e) {
+                Log.e(TAG, "注销配对状态接收器时出错: " + e.getMessage());
+            }
+        }
+
+        // 清理所有handler回调
+        if (handler != null) {
+            handler.removeCallbacksAndMessages(null);
+        }
     }
 }
