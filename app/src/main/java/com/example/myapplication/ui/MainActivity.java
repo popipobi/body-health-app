@@ -27,6 +27,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.myapplication.BlePermissionCheck;
 import com.example.myapplication.BottomNavigationHelper;
 import com.example.myapplication.R;
+import com.example.myapplication.VentilatorWebSocketManager;
 import com.example.myapplication.util.SwipeToDeleteCallback;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
@@ -44,6 +45,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     // 数据
     private List<DeviceInfo> addedDevices;
     private ActivityResultLauncher<Intent> addDeviceLauncher;
+
+    private VentilatorWebSocketManager ventilatorManager;
+
+    // 添加呼吸机配网结果处理
+    private ActivityResultLauncher<Intent> ventilatorSetupLauncher;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -69,6 +75,106 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         setupBottomNavigation();
         setupActivityResultLauncher();
         updateUI();
+
+        // 初始化呼吸机管理器
+        initVentilatorManager();
+        // 检查是否有已配网的呼吸机
+        checkAndConnectVentilator();
+    }
+
+    private void initVentilatorManager() {
+        ventilatorManager = new VentilatorWebSocketManager();
+        ventilatorManager.setConnectionListener(new VentilatorWebSocketManager.ConnectionListener() {
+            @Override
+            public void onConnected() {
+                Log.d("huhumain", "✅ 呼吸机MQTT连接成功！");
+                runOnUiThread(() -> {
+                    Toast.makeText(MainActivity.this, "呼吸机连接成功", Toast.LENGTH_SHORT).show();
+                    // 更新呼吸机设备状态为已连接
+                    updateVentilatorConnectionStatus(true);
+                });
+            }
+
+            @Override
+            public void onDisconnected() {
+                Log.d("huhumain", "❌ 呼吸机MQTT连接断开");
+                runOnUiThread(() -> {
+                    Toast.makeText(MainActivity.this, "呼吸机连接断开", Toast.LENGTH_SHORT).show();
+                    updateVentilatorConnectionStatus(false);
+                });
+            }
+
+            @Override
+            public void onError(String error) {
+                Log.e("huhumain", "❌ 呼吸机连接错误: " + error);
+                runOnUiThread(() -> {
+                    Toast.makeText(MainActivity.this, "呼吸机连接错误: " + error, Toast.LENGTH_LONG).show();
+                    updateVentilatorConnectionStatus(false);
+                });
+            }
+
+            @Override
+            public void onDataReceived(String topic, String data) {
+                Log.d("huhumain", "📊 收到呼吸机数据:");
+                Log.d("huhumain", "   主题: " + topic);
+                Log.d("huhumain", "   数据: " + data);
+
+                runOnUiThread(() -> {
+                    // 解析不同类型的数据
+                    if (topic.contains("VentilatorForm")) {
+//                        parseVentilatorForm(data);
+                    } else if (topic.contains("VentilatorFlowPressure")) {
+//                        parseFlowPressure(data);
+                    } else if (topic.contains("Oximeter")) {
+//                        parseOximeter(data);
+                    }
+                });
+            }
+        });
+    }
+
+    private void checkAndConnectVentilator() {
+        // 检查是否有已配网的呼吸机
+        String savedClientId = getVentilatorClientId();
+        if (savedClientId != null && !savedClientId.isEmpty()) {
+            Log.d("huhumain", "🔄 发现已配网的呼吸机，开始连接...");
+            Log.d("huhumain", "客户端ID: " + savedClientId);
+            ventilatorManager.connect(savedClientId);
+        } else {
+            Log.d("huhumain", "ℹ️ 未发现已配网的呼吸机");
+        }
+    }
+
+    private String getVentilatorClientId() {
+        // 从SharedPreferences获取保存的呼吸机ClientID
+        SharedPreferences prefs = getSharedPreferences("ventilator_config", MODE_PRIVATE);
+        return prefs.getString("client_id", null);
+    }
+
+    private void saveVentilatorClientId(String clientId) {
+        // 保存呼吸机ClientID
+        SharedPreferences prefs = getSharedPreferences("ventilator_config", MODE_PRIVATE);
+        prefs.edit().putString("client_id", clientId).apply();
+        Log.d("huhumain", "💾 保存呼吸机ClientID: " + clientId);
+    }
+
+    private boolean isVentilatorConfigured() {
+        String clientId = getVentilatorClientId();
+        return clientId != null && !clientId.isEmpty();
+    }
+
+    private void updateVentilatorConnectionStatus(boolean connected) {
+        // 更新已添加设备列表中呼吸机的连接状态
+        for (DeviceInfo device : addedDevices) {
+            if ("ventilator".equals(device.type)) {
+                device.isConnected = connected;
+                break;
+            }
+        }
+        // 刷新UI
+        updateUI();
+        // 保存状态
+        saveDevicesToPreferences();
     }
 
     private void checkAndRequestPermissions() {
@@ -140,6 +246,41 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             saveDevicesToPreferences();
 
                             // 更新UI
+                            updateUI();
+                        }
+                    }
+                });
+
+        // 添加呼吸机配网启动器
+        ventilatorSetupLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                        Intent data = result.getData();
+                        String clientId = data.getStringExtra("client_id");
+
+                        if (clientId != null && !clientId.isEmpty()) {
+                            // 保存ClientID
+                            saveVentilatorClientId(clientId);
+
+                            // 如果还没有添加呼吸机设备，则添加
+                            boolean hasVentilator = false;
+                            for (DeviceInfo device : addedDevices) {
+                                if ("ventilator".equals(device.type)) {
+                                    hasVentilator = true;
+                                    break;
+                                }
+                            }
+
+                            if (!hasVentilator) {
+                                addDevice("ventilator", "呼吸机");
+                                saveDevicesToPreferences();
+                            }
+
+                            // 开始连接MQTT
+                            Log.d("MainActivity", "🔄 配网成功，开始连接MQTT...");
+                            ventilatorManager.connect(clientId);
+
                             updateUI();
                         }
                     }
@@ -355,7 +496,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
             void setupCard(DeviceInfo deviceInfo, MainActivity mainActivity) {
                 try {
-                    // 清空之前的内容
                     cardView.removeAllViews();
 
                     // 创建内容布局
@@ -416,7 +556,18 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             intent.putExtra("device_name", deviceInfo.name);
                             mainActivity.startActivity(intent);
                         } else if ("ventilator".equals(deviceInfo.type)) {
-                            Toast.makeText(mainActivity, "呼吸机测量页面开发中...", Toast.LENGTH_SHORT).show();
+                            // 呼吸机-根据配网状态决定操作
+                            if (mainActivity.isVentilatorConfigured()) {
+                                // 已配网 - 进入测量页面（待创建）
+                                Toast.makeText(mainActivity, "呼吸机测量页面开发中...", Toast.LENGTH_SHORT).show();
+                                // TODO: 后续创建呼吸机测量页面
+                                // Intent intent = new Intent(mainActivity, VentilatorMeasureActivity.class);
+                                // mainActivity.startActivity(intent);
+                            } else {
+                                // 未配网 - 进入配网页面
+                                Intent intent = new Intent(mainActivity, VentilatorSetupActivity.class);
+                                mainActivity.ventilatorSetupLauncher.launch(intent);
+                            }
                         }
                     });
 

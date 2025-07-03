@@ -42,7 +42,7 @@ import java.util.UUID;
  * 作用：通过蓝牙给呼吸机配置WiFi网络信息
  */
 public class VentilatorSetupActivity extends AppCompatActivity implements View.OnClickListener {
-    private static final String TAG = "VentilatorSetup";
+    private static final String TAG = "huhusetup";
 
     // 呼吸机蓝牙服务UUIDs（来自文档）
     private static final String SERVICE_UUID = "0000FFFF-0000-1000-8000-00805F9B34FB";
