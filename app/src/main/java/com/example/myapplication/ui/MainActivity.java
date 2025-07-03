@@ -122,15 +122,108 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 runOnUiThread(() -> {
                     // 解析不同类型的数据
                     if (topic.contains("VentilatorForm")) {
-//                        parseVentilatorForm(data);
+                        parseVentilatorForm(data);
                     } else if (topic.contains("VentilatorFlowPressure")) {
-//                        parseFlowPressure(data);
+                        parseFlowPressure(data);
                     } else if (topic.contains("Oximeter")) {
-//                        parseOximeter(data);
+                        parseOximeter(data);
                     }
                 });
             }
         });
+    }
+
+    private void parseVentilatorForm(String data) {
+        // 解析治疗数据: 0#2000#3000#500#0#10#4
+        String[] parts = data.split("#");
+        if (parts.length >= 7) {
+            String mode = getModeName(Integer.parseInt(parts[0]));
+            String inhaleTime = parts[1] + "ms";
+            String exhaleTime = parts[2] + "ms";
+            String tidalVolume = parts[3] + "ml";
+            String leakage = parts[4] + "ml";
+            String inhalePressure = parts[5];
+            String exhalePressure = parts[6];
+
+            Log.d("huhumain", "🫁 治疗数据解析:");
+            Log.d("huhumain", "   模式: " + mode);
+            Log.d("huhumain", "   吸气时间: " + inhaleTime);
+            Log.d("huhumain", "   呼气时间: " + exhaleTime);
+            Log.d("huhumain", "   潮气量: " + tidalVolume);
+            Log.d("huhumain", "   漏气量: " + leakage);
+            Log.d("huhumain", "   吸气压力: " + inhalePressure);
+            Log.d("huhumain", "   呼气压力: " + exhalePressure);
+
+            // 显示Toast提示收到数据
+            Toast.makeText(this, "收到治疗数据: " + mode + "模式", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void parseFlowPressure(String data) {
+        // 解析流量压力: 50#22#20230901VT300
+        String[] parts = data.split("#");
+        if (parts.length >= 3) {
+            String flow = parts[0] + " L/Min";
+            String pressure = parts[1] + " cmH2O";
+            String deviceModel = parts[2];
+
+            Log.d("huhumain", "💨 流量压力数据:");
+            Log.d("huhumain", "   流量: " + flow);
+            Log.d("huhumain", "   压力: " + pressure);
+            Log.d("huhumain", "   设备型号: " + deviceModel);
+
+            Toast.makeText(this, "收到流量压力数据: " + flow, Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void parseOximeter(String data) {
+        // 解析血氧数据: 98#96
+        String[] parts = data.split("#");
+        if (parts.length >= 2) {
+            String spo2 = parts[0] + "%";
+            String heartRate = parts[1] + " bpm";
+
+            Log.d("huhumain", "❤️ 血氧数据:");
+            Log.d("huhumain", "   血氧: " + spo2);
+            Log.d("huhumain", "   心率: " + heartRate);
+
+            Toast.makeText(this, "收到血氧数据: " + spo2 + ", 心率: " + heartRate, Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private String getModeName(int mode) {
+        switch (mode) {
+            case 0: return "CPAP";
+            case 1: return "S";
+            case 2: return "T";
+            case 3: return "ST";
+            case 4: return "S+V";
+            case 5: return "T+V";
+            case 6: return "ST+V";
+            default: return "未知模式(" + mode + ")";
+        }
+    }
+
+    // 添加测试发送参数的方法 - 可选，用于测试
+    private void testSendParameters() {
+        if (ventilatorManager.isConnected()) {
+            // 发送CPAP模式参数: 设定压力10, 初始压力4
+            String parameters = "0#20#8"; // 0=CPAP模式, 20=设定压力10*2, 8=初始压力4*2
+            ventilatorManager.publishVentilatorParameters(parameters);
+            Log.d("huhumain", "📤 发送CPAP参数: " + parameters);
+            Toast.makeText(this, "已发送CPAP参数到呼吸机", Toast.LENGTH_SHORT).show();
+        } else {
+            Log.w("huhumain", "⚠️ 呼吸机未连接，无法发送参数");
+            Toast.makeText(this, "呼吸机未连接，无法发送参数", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (ventilatorManager != null) {
+            ventilatorManager.disconnect();
+        }
     }
 
     private void checkAndConnectVentilator() {
@@ -139,7 +232,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         if (savedClientId != null && !savedClientId.isEmpty()) {
             Log.d("huhumain", "🔄 发现已配网的呼吸机，开始连接...");
             Log.d("huhumain", "客户端ID: " + savedClientId);
-            ventilatorManager.connect(savedClientId);
+
+            // 先测试网络连接
+            testNetworkConnectivity();
+
+            // 延迟3秒后尝试连接，给网络测试一些时间
+            new android.os.Handler().postDelayed(() -> {
+                ventilatorManager.connect(savedClientId);
+            }, 3000);
+
         } else {
             Log.d("huhumain", "ℹ️ 未发现已配网的呼吸机");
         }
@@ -577,5 +678,82 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 }
             }
         }
+    }
+
+    // 测试
+    private void testNetworkConnectivity() {
+        new Thread(() -> {
+            try {
+                Log.d("huhumain", "🌐 开始测试网络连接...");
+
+                // 测试1: DNS解析
+                try {
+                    java.net.InetAddress address = java.net.InetAddress.getByName("down.conmo.net");
+                    Log.d("huhumain", "✅ DNS解析成功: " + address.getHostAddress());
+
+                    runOnUiThread(() -> {
+                        Toast.makeText(this, "DNS解析成功: " + address.getHostAddress(), Toast.LENGTH_LONG).show();
+                    });
+
+                    // 测试2: 尝试连接
+                    testSocketConnection(address.getHostAddress());
+
+                } catch (java.net.UnknownHostException e) {
+                    Log.e("huhumain", "❌ DNS解析失败: " + e.getMessage());
+                    runOnUiThread(() -> {
+                        Toast.makeText(this, "DNS解析失败，请检查网络", Toast.LENGTH_LONG).show();
+                    });
+
+                    // 尝试使用公共DNS测试
+                    testWithPublicDNS();
+                }
+
+            } catch (Exception e) {
+                Log.e("huhumain", "❌ 网络测试失败: " + e.getMessage());
+            }
+        }).start();
+    }
+
+    private void testSocketConnection(String host) {
+        try {
+            Log.d("huhumain", "🔌 测试Socket连接到: " + host + ":1883");
+
+            java.net.Socket socket = new java.net.Socket();
+            socket.connect(new java.net.InetSocketAddress(host, 1883), 5000);
+            socket.close();
+
+            Log.d("huhumain", "✅ Socket连接成功");
+            runOnUiThread(() -> {
+                Toast.makeText(this, "服务器连接测试成功", Toast.LENGTH_SHORT).show();
+            });
+
+        } catch (Exception e) {
+            Log.e("huhumain", "❌ Socket连接失败: " + e.getMessage());
+            runOnUiThread(() -> {
+                Toast.makeText(this, "服务器连接失败: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            });
+        }
+    }
+
+    private void testWithPublicDNS() {
+        try {
+            Log.d("huhumain", "🌐 尝试使用8.8.8.8 DNS...");
+
+            // 这里可以尝试使用不同的DNS服务器
+            // 但在Android中比较复杂，暂时跳过
+
+            runOnUiThread(() -> {
+                Toast.makeText(this, "DNS问题，请尝试切换网络", Toast.LENGTH_LONG).show();
+            });
+
+        } catch (Exception e) {
+            Log.e("huhumain", "❌ 公共DNS测试失败: " + e.getMessage());
+        }
+    }
+
+    // 添加一个按钮来触发网络测试（可选）
+    private void addNetworkTestButton() {
+        // 在某个地方添加测试按钮，比如长按呼吸机卡片时
+        // 这里只是示例代码
     }
 }

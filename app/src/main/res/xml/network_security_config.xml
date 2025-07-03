@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- 允许所有HTTPS连接，同时也允许到特定服务器的明文连接 -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">119.23.204.237</domain>
+        <domain includeSubdomains="true">down.conmo.net</domain>
+    </domain-config>
+
+    <!-- 允许所有HTTPS连接 -->
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system"/>
+        </trust-anchors>
+    </base-config>
+
+    <!-- 如果有SSL证书问题，允许信任所有证书（仅用于调试） -->
+    <debug-overrides>
+        <trust-anchors>
+            <certificates src="system"/>
+            <certificates src="user"/>
+        </trust-anchors>
+    </debug-overrides>
+</network-security-config>

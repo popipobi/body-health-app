@@ -13,7 +13,19 @@ public class VentilatorWebSocketManager {
     private static final String TAG = "huhu";
 
     // 呼吸机MQTT连接参数
-    private static final String WEBSOCKET_URL = "wss://down.conmo.net:1883/WebSocket";
+    // 方案1: 使用IP + WSS + 标准WebSocket端口
+    private static final String WEBSOCKET_URL_1 = "wss://119.23.204.237:8083/WebSocket";
+
+    // 方案2: 使用IP + WSS + HTTPS端口
+    private static final String WEBSOCKET_URL_2 = "wss://119.23.204.237:443/WebSocket";
+
+    // 方案3: 使用域名 + WSS（如果DNS能解析）
+    private static final String WEBSOCKET_URL_3 = "wss://down.conmo.net:8083/WebSocket";
+
+    // 方案4: 原始文档地址（如果DNS问题解决）
+    private static final String WEBSOCKET_URL_4 = "wss://down.conmo.net:1883/WebSocket";
+    private static final String WEBSOCKET_URL = WEBSOCKET_URL_1;
+
     private static final String USERNAME = "km888#1";
     private static final String PASSWORD = "km888#8";
 
@@ -65,21 +77,27 @@ public class VentilatorWebSocketManager {
      * 连接到呼吸机MQTT服务器
      * @param clientId 从蓝牙配网获得的客户端ID
      */
+    /**
+     * 连接到呼吸机MQTT服务器 - 增加重试机制
+     */
     public void connect(String clientId) {
         this.clientId = clientId;
+        connectWithRetry(WEBSOCKET_URL, 0);
+    }
 
-        Log.d(TAG, "开始连接WebSocket MQTT服务器...");
+    private void connectWithRetry(String url, int attemptCount) {
+        Log.d(TAG, "尝试连接 (第" + (attemptCount + 1) + "次): " + url);
         Log.d(TAG, "客户端ID: " + clientId);
 
         Request request = new Request.Builder()
-                .url(WEBSOCKET_URL)
+                .url(url)
                 .addHeader("Sec-WebSocket-Protocol", "mqtt")
                 .build();
 
         webSocket = okHttpClient.newWebSocket(request, new WebSocketListener() {
             @Override
             public void onOpen(WebSocket webSocket, Response response) {
-                Log.d(TAG, "WebSocket连接成功");
+                Log.d(TAG, "✅ WebSocket连接成功: " + url);
                 // 发送MQTT连接消息
                 sendMqttConnect();
             }
@@ -87,7 +105,6 @@ public class VentilatorWebSocketManager {
             @Override
             public void onMessage(WebSocket webSocket, String text) {
                 Log.d(TAG, "收到文本消息: " + text);
-                // 一般MQTT消息是二进制的，这里可能是服务器的错误消息
                 if (connectionListener != null) {
                     connectionListener.onError("收到意外的文本消息: " + text);
                 }
@@ -96,7 +113,6 @@ public class VentilatorWebSocketManager {
             @Override
             public void onMessage(WebSocket webSocket, ByteString bytes) {
                 Log.d(TAG, "收到二进制消息，长度: " + bytes.size());
-                // 处理二进制MQTT消息
                 handleMqttBinaryMessage(bytes);
             }
 
@@ -112,13 +128,36 @@ public class VentilatorWebSocketManager {
 
             @Override
             public void onFailure(WebSocket webSocket, Throwable t, Response response) {
-                Log.e(TAG, "WebSocket连接失败: " + t.getMessage());
+                Log.e(TAG, "❌ WebSocket连接失败: " + t.getMessage());
                 isConnected = false;
-                if (connectionListener != null) {
-                    connectionListener.onError("连接失败: " + t.getMessage());
-                }
+
+                // 尝试其他URL
+                tryNextUrl(attemptCount);
             }
         });
+    }
+
+    private void tryNextUrl(int attemptCount) {
+        String[] urls = {
+                WEBSOCKET_URL_1, // wss://119.23.204.237:8083/WebSocket
+                WEBSOCKET_URL_2, // wss://119.23.204.237:443/WebSocket
+                WEBSOCKET_URL_3, // wss://down.conmo.net:8083/WebSocket
+                WEBSOCKET_URL_4  // wss://down.conmo.net:1883/WebSocket
+        };
+
+        int nextAttempt = attemptCount + 1;
+        if (nextAttempt < urls.length) {
+            Log.d(TAG, "🔄 尝试下一个URL...");
+            // 延迟2秒后尝试下一个URL
+            new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
+                connectWithRetry(urls[nextAttempt], nextAttempt);
+            }, 2000);
+        } else {
+            Log.e(TAG, "❌ 所有连接方式都失败了");
+            if (connectionListener != null) {
+                connectionListener.onError("无法连接到呼吸机服务器，已尝试所有连接方式");
+            }
+        }
     }
 
     /**
