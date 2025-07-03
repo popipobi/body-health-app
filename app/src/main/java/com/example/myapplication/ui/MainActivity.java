@@ -415,6 +415,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             Intent intent = new Intent(mainActivity, BodyFatMeasureActivity.class);
                             intent.putExtra("device_name", deviceInfo.name);
                             mainActivity.startActivity(intent);
+                        } else if ("ventilator".equals(deviceInfo.type)) {
+                            Toast.makeText(mainActivity, "呼吸机测量页面开发中...", Toast.LENGTH_SHORT).show();
                         }
                     });
 

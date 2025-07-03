@@ -2,6 +2,7 @@ package com.example.myapplication.ui;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.ImageButton;
 import android.widget.Toast;
@@ -11,6 +12,7 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
+import com.example.myapplication.ui.VentilatorSetupActivity;
 
 import com.example.myapplication.R;
 
@@ -25,6 +27,7 @@ public class AddDeviceActivity extends AppCompatActivity implements View.OnClick
 
     // ActivityResultLauncher
     private ActivityResultLauncher<Intent> deviceSearchLauncher;
+    private ActivityResultLauncher<Intent> ventilatorSetupLauncher;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,11 +59,31 @@ public class AddDeviceActivity extends AppCompatActivity implements View.OnClick
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
                     if (result.getResultCode() == RESULT_OK && result.getData() != null) {
-                        // 搜索成功，将结果传递给MainActivity
-                        Intent resultIntent = new Intent();
-                        resultIntent.putExtras(result.getData().getExtras());
-                        setResult(RESULT_OK, resultIntent);
-                        finish(); // 关闭AddDeviceActivity，返回MainActivity
+                        // 处理血压计和体脂秤的搜索结果
+                        Intent data = result.getData();
+                        boolean deviceAdded = data.getBooleanExtra("device_added", false);
+                        if (deviceAdded) {
+                            String deviceType = data.getStringExtra("device_type");
+                            String deviceName = data.getStringExtra("device_name");
+                            setResult(RESULT_OK, data);
+                            finish();
+                        }
+                    }
+                });
+
+        // 呼吸机配网启动器
+        ventilatorSetupLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                        // 处理呼吸机配网结果
+                        Intent data = result.getData();
+                        boolean deviceAdded = data.getBooleanExtra("device_added", false);
+                        if (deviceAdded) {
+                            // 呼吸机配网成功，返回结果给MainActivity
+                            setResult(RESULT_OK, data);
+                            finish();
+                        }
                     }
                 });
     }
@@ -81,8 +104,9 @@ public class AddDeviceActivity extends AppCompatActivity implements View.OnClick
             intent.putExtra(DeviceSearchActivity.EXTRA_DEVICE_TYPE, DeviceSearchActivity.DEVICE_TYPE_BODY_FAT_SCALE);
             deviceSearchLauncher.launch(intent);
         } else if (v.getId() == R.id.card_ventilator) {
-            // 后续改
-            Toast.makeText(this, "呼吸机配网功能开发中...", Toast.LENGTH_SHORT).show();
+            // 呼吸机
+            Intent intent = new Intent(this, VentilatorSetupActivity.class);
+            ventilatorSetupLauncher.launch(intent);
         }
     }
 }

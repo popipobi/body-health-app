@@ -64,6 +64,10 @@
             android:name=".ui.BodyFatDetailActivity"
             android:exported="false" />
 
+        <activity
+            android:name=".ui.VentilatorSetupActivity"
+            android:exported="false" />
+
         <service android:name=".BleService" />
         <service
             android:name="com.pingwang.bluetoothlib.server.ELinkBleServer"
