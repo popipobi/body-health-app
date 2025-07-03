@@ -39,6 +39,9 @@ dependencies {
     androidTestImplementation libs.espresso.core
 
     implementation 'com.github.PhilJay:MPAndroidChart:v3.1.0'
-    implementation 'com.github.elinkthings:AILinkSDKRepositoryAndroid:1.14.27'  // 蓝牙库(必须)
-    implementation 'com.github.elinkthings:AILinkSDKParsingLibraryAndroid:1.9.8'  // 解析库(包含算法库)
+    implementation 'com.github.elinkthings:AILinkSDKRepositoryAndroid:1.14.27'  // 蓝牙库（必须）
+    implementation 'com.github.elinkthings:AILinkSDKParsingLibraryAndroid:1.9.8'  // 解析库（包含算法库）
+
+    // OkHttp手动实现MQTT（呼吸机）
+    implementation 'com.squareup.okhttp3:okhttp:4.11.0'
 }
