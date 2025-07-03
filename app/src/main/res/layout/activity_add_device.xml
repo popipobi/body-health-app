@@ -15,13 +15,14 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
-        <!-- 返回按钮 - 修改为左箭头 -->
+        <!-- 返回按钮 -->
         <ImageButton
             android:id="@+id/btn_back"
             android:layout_width="48dp"
             android:layout_height="48dp"
             android:src="@drawable/ic_arrow_back"
             android:background="@android:color/transparent"
+            android:contentDescription="返回"
             app:tint="@android:color/white"
             android:layout_marginStart="16dp"
             app:layout_constraintTop_toTopOf="parent"
@@ -128,6 +129,7 @@
                 android:id="@+id/card_body_fat_scale"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginBottom="20dp"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="6dp"
                 android:clickable="true"
@@ -168,6 +170,57 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="测量体重、体脂率等身体成分"
+                            android:textSize="14sp"
+                            android:textColor="#757575" />
+                    </LinearLayout>
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <!-- 呼吸机设备卡片 -->
+            <androidx.cardview.widget.CardView
+                android:id="@+id/card_ventilator"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="6dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?android:attr/selectableItemBackground">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:padding="24dp"
+                    android:gravity="center_vertical">
+
+                    <!-- 设备图标 -->
+                    <ImageView
+                        android:layout_width="60dp"
+                        android:layout_height="60dp"
+                        android:src="@android:drawable/stat_sys_data_bluetooth"
+                        app:tint="#1976D2"
+                        android:layout_marginEnd="20dp" />
+
+                    <!-- 设备信息 -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="呼吸机"
+                            android:textSize="20sp"
+                            android:textStyle="bold"
+                            android:textColor="#333333"
+                            android:layout_marginBottom="4dp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="测量呼吸治疗数据和血氧指标"
                             android:textSize="14sp"
                             android:textColor="#757575" />
                     </LinearLayout>

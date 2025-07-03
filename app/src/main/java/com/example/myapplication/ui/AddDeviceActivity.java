@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.ImageButton;
+import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.activity.result.ActivityResultLauncher;
@@ -20,6 +21,7 @@ public class AddDeviceActivity extends AppCompatActivity implements View.OnClick
     private ImageButton btnBack;
     private CardView cardBloodPressure;
     private CardView cardBodyFatScale;
+    private CardView cardVentilator;
 
     // ActivityResultLauncher
     private ActivityResultLauncher<Intent> deviceSearchLauncher;
@@ -39,12 +41,14 @@ public class AddDeviceActivity extends AppCompatActivity implements View.OnClick
         btnBack = findViewById(R.id.btn_back);
         cardBloodPressure = findViewById(R.id.card_blood_pressure);
         cardBodyFatScale = findViewById(R.id.card_body_fat_scale);
+        cardVentilator = findViewById(R.id.card_ventilator);
     }
 
     private void setupClickListeners() {
         btnBack.setOnClickListener(this);
         cardBloodPressure.setOnClickListener(this);
         cardBodyFatScale.setOnClickListener(this);
+        cardVentilator.setOnClickListener(this);
     }
 
     private void setupActivityResultLauncher() {
@@ -76,6 +80,9 @@ public class AddDeviceActivity extends AppCompatActivity implements View.OnClick
             Intent intent = new Intent(this, DeviceSearchActivity.class);
             intent.putExtra(DeviceSearchActivity.EXTRA_DEVICE_TYPE, DeviceSearchActivity.DEVICE_TYPE_BODY_FAT_SCALE);
             deviceSearchLauncher.launch(intent);
+        } else if (v.getId() == R.id.card_ventilator) {
+            // 后续改
+            Toast.makeText(this, "呼吸机配网功能开发中...", Toast.LENGTH_SHORT).show();
         }
     }
 }
